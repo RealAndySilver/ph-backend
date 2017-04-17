@@ -14,12 +14,15 @@ var start, finish;
  */
 client.connect()
   .then(function (){
+    var query = "CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3' }";
+    client.execute(query);
+    var query = "CREATE TABLE IF NOT EXISTS examples.basic (id uuid, txt text, val int, date timestamp , PRIMARY KEY(id))";
+    client.execute(query);
     var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
     start = new Date();
     console.log("executing my stuff");
     for (var num = 1; num <= size; num++) {
       client.execute(query, [cassandra.types.Uuid.random(), 'Hello!', num, new Date()], { prepare: true },  function(err){
-        //console.log("WDF");
         assert.ifError(err);
     });
     }
