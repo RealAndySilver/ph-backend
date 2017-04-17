@@ -1,0 +1,16 @@
+{
+  "name": "test_mongo",
+  "version": "1.0.0",
+  "description": "App to test inserts per sec",
+  "main": "app.js",
+  "repository": "",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "author": "Parzifal de Leon",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^2.2.25",
+    "cassandra-driver":"^3.2.0"
+  }
+}
