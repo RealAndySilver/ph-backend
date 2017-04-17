@@ -1,23 +1,32 @@
 "use strict";
 const cassandra = require('cassandra-driver');
+const async = require('async');
 const assert = require('assert');
 
 const client = new cassandra.Client({ contactPoints: ['127.0.0.1']});
-const id = cassandra.types.Uuid.random();
 var num = 111;
 var size = 100000;
 var start, finish;
-
 /**
- * Example using Promise.
- * See basic-execute-flow.js for an example using callback-based execution.
+ * Example using async library for avoiding nested callbacks
+ * See https://github.com/caolan/async
+ * Alternately you can use the Promise-based API.
  */
-client.connect()
-  .then(function (){
+//const id = cassandra.types.Uuid.random();
+
+async.series([
+  function connect(next) {
+    client.connect(next);
+  },
+  function createKeyspace(next) {
     var query = "CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3' }";
-    client.execute(query);
+    client.execute(query, next);
+  },
+  function createTable(next) {
     var query = "CREATE TABLE IF NOT EXISTS examples.basic (id uuid, txt text, val int, date timestamp , PRIMARY KEY(id))";
-    client.execute(query);
+    client.execute(query, next);
+  },
+  function insert(next) {
     var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
     start = new Date();
     console.log("executing my stuff");
@@ -28,8 +37,11 @@ client.connect()
     }
     finish = new Date();
     console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
-  })
-  .catch(function (err) {
-    console.error('There was an error when connecting', err);
-    return client.shutdown();
-  });
+  }
+], function (err) {
+  if (err) {
+    console.error('There was an error', err.message, err.stack);
+  }
+  console.log('Shutting down');
+  client.shutdown();
+});
