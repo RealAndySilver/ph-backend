@@ -2,7 +2,7 @@ var assert = require('assert');
 var MongoClient = require('mongodb').MongoClient;
 var url = 'mongodb://localhost:27017/test';
 var start, finish;
-var size = 100000;
+
 
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
@@ -11,6 +11,7 @@ MongoClient.connect(url, (err, database) => {
 })
 
 var router = function (app) {
+    
 
     /* GET home page. */
     app.get('/mongo-api', function (req, res, next) {
@@ -19,13 +20,20 @@ var router = function (app) {
 
     // mongo api insert n rows
     app.post('/mongo-api/data', function (req, res) {
+        var size = 1;
+        if(!req.body.txt || !req.body.val || !req.body.date){
+            return res.status(400).json({message: 'Please fill out all fields'});
+        }
         start = new Date();
         console.log("executing my stuff");
-        for (var num = 0; num < size; num++) {
+        /*for (var num = 0; num < size; num++) {
             insertDocument(db, num, function () {
                 db.close();
             });
-        }
+        }*/
+        insertDocument(db, req, function () {
+                db.close();
+        });
         finish = new Date();
         var time = (finish.getTime() - start.getTime()) + " ms";
         console.log("Operation took " + time);
@@ -35,11 +43,11 @@ var router = function (app) {
 }
 
 // insert a row
-var insertDocument = function (db, num, callback) {
+var insertDocument = function (db, req, callback) {
     db.collection('basic').insertOne({
-        "txt": 'Hello!',
-        "val": num,
-        "date": new Date()
+        "txt": req.body.txt,
+        "val": req.body.val,
+        "date": req.body.date
     }, function (err, result) {
         assert.equal(err, null);
         callback();
