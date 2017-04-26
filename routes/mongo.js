@@ -41,12 +41,12 @@ var router = function (app) {
 
         var bigdata = req.body.bigdata;
         //if (typeof bigdata == Array) {
-        if(bigdata.length != 0 ){
+        if (bigdata.length != 0) {
             for (var i = 0; i < bigdata.length; i++) {
                 globalArray.push(bigdata[i]);
             }
         }
-        console.log("globalArray ",globalArray[0].txt);
+        console.log("globalArray ", globalArray[0].txt);
         res.send("ok");
 
     });
@@ -58,23 +58,28 @@ setInterval(function () {
     if (flag) {
         flag = false;
         tempArray = [];
-        console.log("globalArray ",globalArray[0]);
+        //console.log("globalArray ",globalArray[0]);
         tempArray = globalArray.slice();
         globalArray = [];
-        
-        console.log("tempArray ",tempArray[0]);
+
+        console.log("tempArray ", tempArray[0]);
         if (tempArray.length != 0) {
-            console.log("tempArray1: ", tempArray);
+            //console.log("tempArray1: ", tempArray);
+            start = new Date();
+            console.log("executing my stuff");
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (var num = 0; num < tempArray.length; num++) {
-                console.log("tempArray2: ", tempArray);
-                bulkInsertDocument(bulk, num);
+                console.log("tempArray2: ", tempArray[num]);
+                bulkInsertDocument(bulk, tempArray[num]);
             }
             bulk.execute(function () {
                 flag = true;
                 console.log("success!!");
             });
-        }else{
+            finish = new Date();
+            var time = (finish.getTime() - start.getTime()) + " ms";
+            console.log("Operation took " + time);
+        } else {
             flag = true;
         }
 
@@ -83,16 +88,14 @@ setInterval(function () {
 
 
 // insert a row
-var bulkInsertDocument = function (bulk, num, callback) {
+var bulkInsertDocument = function (bulk, req) {
     bulk.insert({
-        "txt": 'Hello!',
-        "val": num,
-        "date": new Date()
-    }, function (err, result) {
-        assert.equal(err, null);
-        callback();
+        "txt": req.txt,
+        "val": req.val,
+        "date": req.date
     });
 };
+
 var insertDocument = function (db, req, callback) {
     db.collection('basic').insertOne({
         "txt": req.body.txt,
