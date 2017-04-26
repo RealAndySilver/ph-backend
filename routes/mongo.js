@@ -1,10 +1,15 @@
 var assert = require('assert');
 var MongoClient = require('mongodb').MongoClient;
+var fs = require('fs');
 var url = 'mongodb://localhost:27017/test';
 var start, finish;
 var globalArray = [];
 var tempArray = [];
 var flag = true;
+
+var file = './public/average.csv';
+
+//app.use(express.bodyParser({limit: ‘50mb’}));
 
 
 //Connect to mongo
@@ -75,10 +80,17 @@ setInterval(function () {
             bulk.execute(function () {
                 flag = true;
                 console.log("success!!");
+                finish = new Date();
+                var time = (finish.getTime() - start.getTime()) + " ms";
+                try{
+                    fs.appendFileSync(file, 'time,'+time);
+                }catch(e){
+                    
+                }
+                
+                console.log("Operation took " + time);
             });
-            finish = new Date();
-            var time = (finish.getTime() - start.getTime()) + " ms";
-            console.log("Operation took " + time);
+            
         } else {
             flag = true;
         }
