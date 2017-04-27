@@ -55,21 +55,21 @@ var router = function (app) {
                     }*/
                     var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
                     var queries = [];
+                    start = new Date();
+                    console.log("executing my stuff");
                     for (var num = 1; num <= bigdata.length; num++) {
                         queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), bigdata.txt, bigdata.val, bigdata.date] });
                     }
-
-                    start = new Date();
-                    console.log("executing my stuff");
                     console.log("rows to insert: ", queries.length)
                     var chunks = split(queries, max_array_size);
                     console.log('chunk size: ', chunks.length);
                     insertChunks(client, chunks, function () {
                         finish = new Date();
                         console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+                        res.send("ok");
                     });
                 }
-                res.send("ok");
+                
 
 
             })
