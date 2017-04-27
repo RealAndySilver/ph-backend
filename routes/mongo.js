@@ -67,23 +67,23 @@ setInterval(function () {
         tempArray = globalArray.slice();
         globalArray = [];
 
-        console.log("tempArray ", tempArray[0]);
+        //console.log("tempArray ", tempArray[0]);
         if (tempArray.length != 0) {
             //console.log("tempArray1: ", tempArray);
             start = new Date();
-            console.log("executing my stuff");
+            //console.log("executing my stuff");
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (var num = 0; num < tempArray.length; num++) {
-                console.log("tempArray2: ", tempArray[num]);
+              //  console.log("tempArray2: ", tempArray[num]);
                 bulkInsertDocument(bulk, tempArray[num]);
             }
             bulk.execute(function () {
                 flag = true;
                 console.log("success!!");
                 finish = new Date();
-                var time = (finish.getTime() - start.getTime()) + " ms";
+                var time = (finish.getTime() - start.getTime());
                 try{
-                    fs.appendFileSync(file, 'time,'+time);
+                    fs.appendFileSync(file, 'date,'+ new Date() +',time,'+time+'\n');
                 }catch(e){
                     
                 }
