@@ -34,25 +34,14 @@ async.series([
         for (var num = 1; num <= size; num++) {
             queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), 'Hello!', num, new Date()] });
         }
-        console.log("rows to insert: ",queries.length)
+        console.log("rows to insert: ", queries.length)
 
-        //console.log(chunks.length);
-        if (size > 50000) {
-            var chunks = split(queries, max_array_size);
-            console.log("chunk size: ", chunks.length);
-            for (var i = 0; i < chunks.length; i++) {
-                client.batch(chunks[i], { prepare: true }, function (err) {
-                    assert.ifError(err);
-                });
-            }
-        } else {
-            client.batch(queries, { prepare: true }, function (err) {
-                assert.ifError(err);
-            });
-        }
-
-        finish = new Date();
-        console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+        var chunks = split(queries, max_array_size);
+        console.log('chunk size: ', chunks.length);
+        insertChunks(client, chunks, function () {
+            finish = new Date();
+            console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+        });
     }
 ], function (err) {
     if (err) {
@@ -61,6 +50,15 @@ async.series([
     console.log('Shutting down');
     client.shutdown();
 });
+
+var insertChunks = function (client, chunks, callback) {
+    for (var i = 0; i < chunks.length; i++) {
+        client.batch(chunks[i], { prepare: true }, function (err) {
+            assert.ifError(err);
+        });
+    }
+    callback();
+}
 
 function split(array, groupsize) {
     var sets = [], chunks, i = 0;

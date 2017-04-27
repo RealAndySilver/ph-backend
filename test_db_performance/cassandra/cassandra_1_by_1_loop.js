@@ -3,7 +3,7 @@ const cassandra = require('cassandra-driver');
 const async = require('async');
 const assert = require('assert');
 
-const client = new cassandra.Client({ contactPoints: ['127.0.0.1']});
+const client = new cassandra.Client({ contactPoints: ['127.0.0.1'] });
 var num = 111;
 var size = 100000;
 var start, finish;
@@ -23,20 +23,17 @@ async.series([
     client.execute(query, next);
   },
   function createTable(next) {
-    var query = "CREATE TABLE IF NOT EXISTS examples.basic (id uuid, txt text, val int, date timestamp , PRIMARY KEY(id))";
+    var query = 'CREATE TABLE IF NOT EXISTS examples.basic (id uuid, txt text, val int, date timestamp , PRIMARY KEY(id))';
     client.execute(query, next);
   },
   function insert(next) {
-    var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
     start = new Date();
-    console.log("executing my stuff");
-    for (var num = 1; num <= size; num++) {
-      client.execute(query, [cassandra.types.Uuid.random(), 'Hello!', num, new Date()], { prepare: true },  function(err){
-        assert.ifError(err);
-    });
-    }
-    finish = new Date();
-    console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+    console.log('executing my stuff');
+    insertionLoop(client, function () {
+      finish = new Date();
+      console.log('Operation took ' + (finish.getTime() - start.getTime()) + " ms");
+    })
+
   }
 ], function (err) {
   if (err) {
@@ -45,3 +42,13 @@ async.series([
   console.log('Shutting down');
   client.shutdown();
 });
+
+var insertionLoop = function (client, callback) {
+  var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
+  for (var num = 1; num <= size; num++) {
+    client.execute(query, [cassandra.types.Uuid.random(), 'Hello!', num, new Date()], { prepare: true }, function (err) {
+      assert.ifError(err);
+    });
+  }
+  callback();
+}

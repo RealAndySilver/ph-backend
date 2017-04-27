@@ -30,8 +30,10 @@ MongoClient.connect(url, function (err, db) {
   for (var num = 0; num < size; num++) {
     insertDocument(bulk, num);
   }
-  bulk.execute();
-  finish = new Date();
-  console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+  bulk.execute(function (){
+    finish = new Date();
+    console.log("bulk Operation took " + (finish.getTime() - start.getTime()) + " ms");
+  });
+  
 
 });

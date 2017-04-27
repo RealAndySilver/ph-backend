@@ -74,7 +74,7 @@ setInterval(function () {
             //console.log("executing my stuff");
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (var num = 0; num < tempArray.length; num++) {
-              //  console.log("tempArray2: ", tempArray[num]);
+                //  console.log("tempArray2: ", tempArray[num]);
                 bulkInsertDocument(bulk, tempArray[num]);
             }
             bulk.execute(function () {
@@ -82,15 +82,14 @@ setInterval(function () {
                 console.log("success!!");
                 finish = new Date();
                 var time = (finish.getTime() - start.getTime());
-                try{
-                    fs.appendFileSync(file, 'date,'+ new Date() +',time,'+time+'\n');
-                }catch(e){
-                    
+                try {
+                    fs.appendFileSync(file, 'date,' + new Date() + ',time,' + time + '\n');
+                } catch (e) {
+
                 }
-                
                 console.log("Operation took " + time);
             });
-            
+
         } else {
             flag = true;
         }

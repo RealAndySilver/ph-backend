@@ -21,17 +21,23 @@ var insertDocument = function (db, num, callback) {
   });
 };
 
+var insertionLoop = function (db, callback) {
+  for (var num = 0; num < size; num++) {
+    insertDocument(db, num, function () {
+      db.close();
+    });
+  }
+  callback();
+}
+
 
 MongoClient.connect(url, function (err, db) {
   start = new Date();
   console.log("executing my stuff");
   assert.equal(null, err);
-  for (var num = 0; num < size; num++) {
-    insertDocument(db, num, function(){
-      db.close();
-    });
-  }
-  finish = new Date();
-  console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+  insertionLoop(db, function () {
+    finish = new Date();
+    console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+  });
 
 });
