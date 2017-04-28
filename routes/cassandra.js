@@ -2,9 +2,15 @@ var assert = require('assert');
 const cassandra = require('cassandra-driver');
 const client = new cassandra.Client({ contactPoints: ['127.0.0.1'] });
 const id = cassandra.types.Uuid.random();
+var fs = require('fs');
 
 var start, finish;
 var max_array_size = 50000;
+var queries = [];
+var tempQueries = [];
+var flag = true;
+
+var file = './public/cassa_average.csv';
 
 
 var router = function (app) {
@@ -14,7 +20,7 @@ var router = function (app) {
         res.send("Cassandra");
     });
 
-    // cassandra api insert n rows
+    // cassandra api insert a row
     app.post('/cassandra-api/data', function (req, res) {
         client.connect()
             .then(function () {
@@ -40,6 +46,7 @@ var router = function (app) {
             });
     });
 
+    //cassandra api insert n rows
     app.post('/cassandra-api/big-data', function (req, res) {
         client.connect()
             .then(function () {
@@ -54,23 +61,12 @@ var router = function (app) {
                         globalArray.push(bigdata[i]);
                     }*/
                     var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
-                    var queries = [];
-                    start = new Date();
-                    console.log("executing my stuff");
-                    for (var num = 1; num <= bigdata.length; num++) {
+                    for (var num = 0; num < bigdata.length; num++) {
                         queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), bigdata.txt, bigdata.val, bigdata.date] });
                     }
-                    console.log("rows to insert: ", queries.length)
-                    var chunks = split(queries, max_array_size);
-                    console.log('chunk size: ', chunks.length);
-                    insertChunks(client, chunks, function () {
-                        finish = new Date();
-                        console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
-                        res.send("ok");
-                    });
-                }
-                
+                    res.send("ok");
 
+                }
 
             })
             .catch(function (err) {
@@ -101,5 +97,40 @@ function split(array, groupsize) {
 
     return sets;
 };
+
+setInterval(function () {
+    if (flag) {
+        flag = false;
+        tempQueries = [];
+        //console.log("globalArray ",globalArray[0]);
+        tempQueries = queries.slice();
+        queries = [];
+
+        //console.log("tempArray ", tempArray[0]);
+        if (tempQueries.length != 0) {
+            //console.log("tempArray1: ", tempArray);
+            start = new Date();
+            console.log("executing my stuff");
+            var row_size = tempQueries.length;
+            console.log("rows to insert: ", row_size)
+            var chunks = split(tempQueries, max_array_size);
+            insertChunks(client, chunks, function () {
+                flag = true;
+                console.log("success!!");
+                finish = new Date();
+                var time = (finish.getTime() - start.getTime());
+                try {
+                    fs.appendFileSync(file,'rows inserted,'+row_size+ ',date,' + new Date() + ',time,' + time + '\n');
+                } catch (e) {
+
+                }
+                console.log("Operation took " + time);
+            });
+        } else {
+            flag = true;
+        }
+
+    }
+}, 1000);
 
 module.exports = router;

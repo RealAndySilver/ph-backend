@@ -7,10 +7,7 @@ var globalArray = [];
 var tempArray = [];
 var flag = true;
 
-var file = './public/average.csv';
-
-//app.use(express.bodyParser({limit: ‘50mb’}));
-
+var file = './public/mongo_average.csv';
 
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
@@ -71,7 +68,9 @@ setInterval(function () {
         if (tempArray.length != 0) {
             //console.log("tempArray1: ", tempArray);
             start = new Date();
-            //console.log("executing my stuff");
+            console.log("executing my stuff");
+            var row_size = tempArray.length;
+            console.log("rows to insert: ", row_size)
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (var num = 0; num < tempArray.length; num++) {
                 //  console.log("tempArray2: ", tempArray[num]);
@@ -83,7 +82,7 @@ setInterval(function () {
                 finish = new Date();
                 var time = (finish.getTime() - start.getTime());
                 try {
-                    fs.appendFileSync(file, 'date,' + new Date() + ',time,' + time + '\n');
+                    fs.appendFileSync(file,'rows inserted,'+row_size+ ',date,' + new Date() + ',time,' + time + '\n');
                 } catch (e) {
 
                 }
