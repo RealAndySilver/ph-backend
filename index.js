@@ -16,9 +16,8 @@ var requestTrimThreshold = 5000;
 var requestTrimSize = 4000;
 app.use(express.static(__dirname + '/public'));
 app.use(function (req, res, next) {
-    requests.push(Date.now());
     console.log("request");
-
+    requests.push(Date.now());
     // now keep requests array from growing forever
     if (requests.length > requestTrimThreshold) {
         requests = requests.slice(0, requests.length - requestTrimSize);

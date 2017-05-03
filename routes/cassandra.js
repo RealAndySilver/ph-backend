@@ -73,7 +73,35 @@ var router = function (app) {
                 console.error('There was an error when connecting', err);
                 return client.shutdown();
             });
-    })
+    });
+
+    app.edit('/cassandra-api/big-data', function (req, res) {
+        client.connect()
+            .then(function () {
+
+                if (!req.body.bigdata) {
+                    return res.status(400).json({ message: 'no data to insert' });
+                }
+                var bigdata = req.body.bigdata;
+                //if (typeof bigdata == Array) {
+                if (bigdata.length != 0) {
+                    /*for (var i = 0; i < bigdata.length; i++) {
+                        globalArray.push(bigdata[i]);
+                    }*/
+                    var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
+                    for (var num = 0; num < bigdata.length; num++) {
+                        queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), bigdata.txt, bigdata.val, bigdata.date] });
+                    }
+                    res.send("ok");
+
+                }
+
+            })
+            .catch(function (err) {
+                console.error('There was an error when connecting', err);
+                return client.shutdown();
+            });
+    });
 }
 
 var insertChunks = function (client, chunks, callback) {
@@ -120,7 +148,7 @@ setInterval(function () {
                 finish = new Date();
                 var time = (finish.getTime() - start.getTime());
                 try {
-                    fs.appendFileSync(file,'rows inserted,'+row_size+ ',date,' + new Date() + ',time,' + time + '\n');
+                    fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
                 } catch (e) {
 
                 }

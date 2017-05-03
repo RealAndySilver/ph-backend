@@ -21,7 +21,7 @@ var router = function (app) {
         res.send("Mongo DB");
     });
 
-    // mongo api insert n rows
+    // mongo api insert a row
     app.post('/mongo-api/data', function (req, res) {
         var size = 1;
         if (!req.body.txt || !req.body.val || !req.body.date) {
@@ -40,7 +40,7 @@ var router = function (app) {
 
     // mongo api insert n rows
     app.post('/mongo-api/big-data', function (req, res) {
-
+        res.send("ok");
         var bigdata = req.body.bigdata;
         //if (typeof bigdata == Array) {
         if (bigdata.length != 0) {
@@ -48,9 +48,7 @@ var router = function (app) {
                 globalArray.push(bigdata[i]);
             }
         }
-        console.log("globalArray ", globalArray[0].txt);
-        res.send("ok");
-
+        console.log("globalArray ", globalArray[0].txt);       
     });
 
 
