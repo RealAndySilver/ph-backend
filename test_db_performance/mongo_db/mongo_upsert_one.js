@@ -21,7 +21,6 @@ var insertDocument = function (db) {
 var insertionLoop = function (db, array, callback) {
 
     db.collection('basic').updateOne({
-        //upsert: true,
         "tag": 'sensor_1'
     }, {
             $push: {
