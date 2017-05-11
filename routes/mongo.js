@@ -6,6 +6,9 @@ var start, finish;
 var globalArray = [];
 var tempArray = [];
 var flag = true;
+var mkdirp = require('mkdirp');
+var getDirName = require('path').dirname;
+
 
 var file = './public/mongo_average.csv';
 
@@ -39,7 +42,7 @@ var router = function (app) {
     });
 
     // mongo api insert n rows
-    app.post('/mongo-api/big-data', function (req, res) {
+    app.post('/mongo-api/big-data----', function (req, res) {
         res.send("ok");
         var bigdata = req.body.bigdata;
         //if (typeof bigdata == Array) {
@@ -48,10 +51,69 @@ var router = function (app) {
                 globalArray.push(bigdata[i]);
             }
         }
-        console.log("globalArray ", globalArray[0].txt);       
     });
 
+    // mongo api insert n rows (with images & videos)
+    app.post('/mongo-api/big-data', function (req, res) {
+        res.send("ok");
+        var bigdata = req.body.bigdata;
+        var binArray = [];
+        //if (typeof bigdata == Array) {
+        if (bigdata.length != 0) {
+            //for (let value of bigdata) {
+            for (var i = 0; i < bigdata.length; i++) {
+                var value = bigdata[i];
+                if (value.file) {
+                    var dir = "/Users/parzifal/data/AP/" + value.txt;
+                    var file_path = dir + "/" + i + "_" + value.date + ".png";
+                    //console.log("bin: "+value.file.bin);
+                    var b = new Buffer(value.file.bin.data);
+                    writeFile(file_path, b);
+                    globalArray.push(
+                        {
+                            txt: value.txt,
+                            path: file_path,
+                            val: value.val,
+                            date: value.date
+                        }
+                    );
+                } else {
+                    globalArray.push(value);
+                }
+            }
+        }
+    });
 
+    //mongo api update 
+    app.post('/mongo-api/big-data-update', function (req, res) {
+        res.send("ok");
+        var bigdata = req.body.bigdata;
+        //console.log("big-data: " + JSON.stringify(bigdata));
+        //if (typeof bigdata == Array) {
+        var array = [];
+        /*array.push({
+            "tag": 'sensor_1',
+            "creation_time": new Date(),
+            "data_array":[]
+        })*/
+        if (bigdata.length != 0) {
+            for (var i = 0; i < bigdata.length; i++) {
+                globalArray.push(bigdata[i]);
+            }
+        }
+        //array[0].data_array = array2;
+        //globalArray = array;
+    })
+
+
+}
+
+function writeFile(path, contents, cb) {
+  mkdirp(getDirName(path), function (err) {
+    if (err) return cb(err);
+
+    fs.writeFileSync(path, contents, cb);
+  });
 }
 
 setInterval(function () {
@@ -70,21 +132,22 @@ setInterval(function () {
             var row_size = tempArray.length;
             console.log("rows to insert: ", row_size)
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
-            for (var num = 0; num < tempArray.length; num++) {
-                //  console.log("tempArray2: ", tempArray[num]);
-                bulkInsertDocument(bulk, tempArray[num]);
+            for (let value of tempArray) {
+                bulkInsertDocument(bulk, value);
+                //bulkUpdateDocument(bulk, tempArray);//[num])
             }
             bulk.execute(function () {
                 flag = true;
                 console.log("success!!");
                 finish = new Date();
                 var time = (finish.getTime() - start.getTime());
+                console.log("Operation took " + time);
                 try {
-                    fs.appendFileSync(file,'rows inserted,'+row_size+ ',date,' + new Date() + ',time,' + time + '\n');
+                    fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
                 } catch (e) {
 
                 }
-                console.log("Operation took " + time);
+
             });
 
         } else {
@@ -96,11 +159,19 @@ setInterval(function () {
 
 
 // insert a row
-var bulkInsertDocument = function (bulk, req) {
-    bulk.insert({
-        "txt": req.txt,
-        "val": req.val,
-        "date": req.date
+var bulkInsertDocument = function (bulk, array) {
+    bulk.insert(array);
+};
+
+// insert a row
+var bulkUpdateDocument = function (bulk, array) {
+    bulk.find({ "tag": array[0].txt }).upsert().updateOne({
+        $set: {
+            "creation_time": new Date()
+        },
+        $push: {
+            "data_array": array
+        }
     });
 };
 

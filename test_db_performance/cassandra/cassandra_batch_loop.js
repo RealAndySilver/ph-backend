@@ -23,7 +23,7 @@ async.series([
         client.execute(query, next);
     },
     function createTable(next) {
-        var query = "CREATE TABLE IF NOT EXISTS examples.basic (id uuid, txt text, val int, date timestamp , PRIMARY KEY(id))";
+        var query = "CREATE TABLE IF NOT EXISTS examples.basic (id uuid, txt text, val decimal, date timestamp , PRIMARY KEY(id))";
         client.execute(query, next);
     },
     function insert(next) {
@@ -32,7 +32,7 @@ async.series([
         console.log("executing my stuff");
         var queries = [];
         for (var num = 1; num <= size; num++) {
-            queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), 'Hello!', num, new Date()] });
+            queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), 'sensor_1', Math.random(), Date.now()] });
         }
         console.log("rows to insert: ", queries.length)
 

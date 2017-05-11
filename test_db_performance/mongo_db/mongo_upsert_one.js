@@ -8,7 +8,7 @@ var app = express();
 
 var start, finish;
 
-var size = 100000;
+var size = 10;
 
 var insertDocument = function (db) {
     db.collection('basic').insertOne({
@@ -53,6 +53,7 @@ MongoClient.connect(url, function (err, db) {
 
     }
     array.data_array = array2;
+    console.log("array", array);
     start = new Date();
     console.log("executing my stuff");
     insertionLoop(db, array, function (err, result) {

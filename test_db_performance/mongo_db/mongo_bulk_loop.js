@@ -12,9 +12,9 @@ var size = 100000;
 
 var insertDocument = function (bulk, num, callback) {
   bulk.insert({
-    "txt": 'Hello!',
-    "val": num,
-    "date": new Date()
+    "txt": 'sensor_1',
+    "val": Math.random(),
+    "date": Date.now()
   }, function (err, result) {
     assert.equal(err, null);
     callback();
@@ -33,6 +33,7 @@ MongoClient.connect(url, function (err, db) {
   bulk.execute(function (){
     finish = new Date();
     console.log("bulk Operation took " + (finish.getTime() - start.getTime()) + " ms");
+    db.close();
   });
   
 

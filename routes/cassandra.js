@@ -5,12 +5,14 @@ const id = cassandra.types.Uuid.random();
 var fs = require('fs');
 
 var start, finish;
-var max_array_size = 50000;
+var max_array_size = 10000;
 var queries = [];
 var tempQueries = [];
 var flag = true;
 
 var file = './public/cassa_average.csv';
+
+var last_val = 0;
 
 
 var router = function (app) {
@@ -50,24 +52,19 @@ var router = function (app) {
     app.post('/cassandra-api/big-data', function (req, res) {
         client.connect()
             .then(function () {
-
                 if (!req.body.bigdata) {
                     return res.status(400).json({ message: 'no data to insert' });
                 }
                 var bigdata = req.body.bigdata;
                 //if (typeof bigdata == Array) {
                 if (bigdata.length != 0) {
-                    /*for (var i = 0; i < bigdata.length; i++) {
-                        globalArray.push(bigdata[i]);
-                    }*/
                     var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
                     for (var num = 0; num < bigdata.length; num++) {
-                        queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), bigdata.txt, bigdata.val, bigdata.date] });
+                        queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), bigdata[num].txt, bigdata[num].val, bigdata[num].date] });
                     }
+                    //last_val = bigdata[num - 1].val;
                     res.send("ok");
-
                 }
-
             })
             .catch(function (err) {
                 console.error('There was an error when connecting', err);
@@ -75,33 +72,6 @@ var router = function (app) {
             });
     });
 
-    app.edit('/cassandra-api/big-data', function (req, res) {
-        client.connect()
-            .then(function () {
-
-                if (!req.body.bigdata) {
-                    return res.status(400).json({ message: 'no data to insert' });
-                }
-                var bigdata = req.body.bigdata;
-                //if (typeof bigdata == Array) {
-                if (bigdata.length != 0) {
-                    /*for (var i = 0; i < bigdata.length; i++) {
-                        globalArray.push(bigdata[i]);
-                    }*/
-                    var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
-                    for (var num = 0; num < bigdata.length; num++) {
-                        queries.push({ "query": query, "params": [cassandra.types.Uuid.random(), bigdata.txt, bigdata.val, bigdata.date] });
-                    }
-                    res.send("ok");
-
-                }
-
-            })
-            .catch(function (err) {
-                console.error('There was an error when connecting', err);
-                return client.shutdown();
-            });
-    });
 }
 
 var insertChunks = function (client, chunks, callback) {
@@ -116,7 +86,6 @@ var insertChunks = function (client, chunks, callback) {
 function split(array, groupsize) {
     var sets = [], chunks, i = 0;
     chunks = array.length / groupsize;
-
     while (i < chunks) {
         //console.log(i);
         sets[i] = array.splice(0, groupsize);
@@ -125,6 +94,13 @@ function split(array, groupsize) {
 
     return sets;
 };
+
+function batchInsert(client, tempQueries, callback) {
+    client.batch(tempQueries, { prepare: true }, function (err) {
+        assert.ifError(err);
+    });
+    callback();
+}
 
 setInterval(function () {
     if (flag) {
@@ -143,6 +119,15 @@ setInterval(function () {
             console.log("rows to insert: ", row_size)
             var chunks = split(tempQueries, max_array_size);
             insertChunks(client, chunks, function () {
+            //batchInsert(client, tempQueries, function () {
+                //var query = 'SELECT id, date, txt, val FROM examples.basic WHERE val = ? ALLOW FILTERING';
+                var query = 'SELECT count(*) FROM examples.basic ';
+                //console.log("last_val", last_val);
+                /*client.execute(query, { prepare: true }, function (err, result) {
+                    //console.log("result ", err || result);
+                    var row = result.first();
+                    console.log('Obtained row: ', row);
+                });*/
                 flag = true;
                 console.log("success!!");
                 finish = new Date();

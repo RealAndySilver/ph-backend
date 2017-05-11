@@ -10,11 +10,11 @@ var start, finish;
 
 var size = 100000;
 
-var insertDocument = function (db, num, callback) {
+var insertDocument = function (db, callback) {
   db.collection('basic').insertOne({
-    "txt": 'Hello!',
-    "val": num,
-    "date": new Date()
+    "txt": 'sensor_1',
+    "val": Math.random(),
+    "date": Date.now()
   }, function (err, result) {
     assert.equal(err, null);
     callback();
@@ -23,7 +23,7 @@ var insertDocument = function (db, num, callback) {
 
 var insertionLoop = function (db, callback) {
   for (var num = 0; num < size; num++) {
-    insertDocument(db, num, function () {
+    insertDocument(db, function () {
       db.close();
     });
   }

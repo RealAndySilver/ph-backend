@@ -32,8 +32,11 @@ async.series([
     insertionLoop(client, function () {
       finish = new Date();
       console.log('Operation took ' + (finish.getTime() - start.getTime()) + " ms");
-    })
-
+      //next();
+    });
+  },
+  function close(next){
+    client.shutdown();
   }
 ], function (err) {
   if (err) {
@@ -46,7 +49,7 @@ async.series([
 var insertionLoop = function (client, callback) {
   var query = 'INSERT INTO examples.basic (id, txt, val, date) VALUES (?, ?, ?, ?)';
   for (var num = 1; num <= size; num++) {
-    client.execute(query, [cassandra.types.Uuid.random(), 'Hello!', num, new Date()], { prepare: true }, function (err) {
+    client.execute(query, [cassandra.types.Uuid.random(), 'sensor_1', Math.random(), Date.now()], { prepare: true }, function (err) {
       assert.ifError(err);
     });
   }
