@@ -64,7 +64,7 @@ var router = function (app) {
             for (var i = 0; i < bigdata.length; i++) {
                 var value = bigdata[i];
                 if (value.file) {
-                    var dir = "/Users/parzifal/data/AP/" + value.txt;
+                    var dir = "/data/AP/" + value.txt;
                     var file_path = dir + "/" + i + "_" + value.date + ".png";
                     //console.log("bin: "+value.file.bin);
                     var b = new Buffer(value.file.bin.data);
