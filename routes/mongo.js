@@ -63,17 +63,17 @@ var router = function (app) {
             //for (let value of bigdata) {
             for (var i = 0; i < bigdata.length; i++) {
                 var value = bigdata[i];
-                if (value.file) {
-                    var dir = "/data/AP/" + value.txt;
-                    var file_path = dir + "/" + i + "_" + value.date + ".png";
-                    //console.log("bin: "+value.file.bin);
+                var file = value.file;
+                if (file) {
+                    var dir = "/data/" + value.var + "/" + value.txt +"/"+ file.size;
+                    var file_path = dir + "/" + i + "_" + value.date + file.ext;
+
                     var b = new Buffer(value.file.bin.data);
                     writeFile(file_path, b);
                     globalArray.push(
                         {
                             txt: value.txt,
-                            path: file_path,
-                            val: value.val,
+                            val: file_path,
                             date: value.date
                         }
                     );
@@ -81,6 +81,7 @@ var router = function (app) {
                     globalArray.push(value);
                 }
             }
+
         }
     });
 
@@ -109,11 +110,11 @@ var router = function (app) {
 }
 
 function writeFile(path, contents, cb) {
-  mkdirp(getDirName(path), function (err) {
-    if (err) return cb(err);
+    mkdirp(getDirName(path), function (err) {
+        if (err) return console.log(err);
 
-    fs.writeFileSync(path, contents, cb);
-  });
+        fs.writeFileSync(path, contents);
+    });
 }
 
 setInterval(function () {
