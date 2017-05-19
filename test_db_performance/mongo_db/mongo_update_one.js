@@ -19,7 +19,7 @@ var insertDocument = function (db) {
 };
 
 var insertionLoop = function (db, array, callback) {
-    
+
     db.collection('basic').updateOne({
         //upsert: true,
         "tag": 'sensor_1'
@@ -34,22 +34,27 @@ var insertionLoop = function (db, array, callback) {
 }
 
 
+
 MongoClient.connect(url, function (err, db) {
     insertDocument(db);
     var array = [];
     for (var num = 0; num < size; num++) {
         array.push({
             "txt": 'Hello!',
-            "val": num,
+            "val": Math.random()*size,
             "date": new Date()
         });
     }
     start = new Date();
     console.log("executing my stuff");
+    array.sort(function (a, b) {
+        return a.val - b.val;
+    });
     insertionLoop(db, array, function (err, result) {
         console.log("result ", err || result);
         finish = new Date();
         console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
+        db.close();
     });
 
 });

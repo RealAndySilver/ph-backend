@@ -8,13 +8,13 @@ var app = express();
 
 var start, finish;
 
-var size = 100000;
+var size = 1000;
 
 var insertDocument = function (bulk, num, callback) {
   bulk.insert({
-    "txt": 'sensor_1',
+    "txt": 'Hello!',
     "val": Math.random(),
-    "date": Date.now()
+    "date": new Date()
   }, function (err, result) {
     assert.equal(err, null);
     callback();

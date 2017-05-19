@@ -22,24 +22,21 @@ var insertDocument = function (db) {
 
 var theArray = [];
 
-var insertionLoop = function (db, grouped, callback) {
+var insertionLoop = function (bulk, grouped) {
     for (let item of grouped) {
         //console.log(item);
         //theArray.push(item.dataarray)
-        db.collection('basic').updateOne(
-            {
-                "tag": item.tag
-            }, {
-                $push: {
-                    "data_array": item.data
-                }
-            }, {
-                upsert: true
-            }, function (err, result) {
-                //console.log("result ", err || result);
-            });
+        //bulk.collection('basic').updateOne(
+        bulk.find({
+            "tag": item.tag
+        }).upsert().update({
+            $push: {
+                "data_array": item.data
+            }
+        }, function (err, result) {
+            //console.log("result ", err || result);
+        });
     }
-    callback();
 }
 
 
@@ -76,8 +73,9 @@ MongoClient.connect(url, function (err, db) {
     //console.log("groups", grouped);
     start = new Date();
     console.log("executing my stuff");
-
-    insertionLoop(db, grouped, function (err, result) {
+    var bulk = db.collection('basic').initializeUnorderedBulkOp();
+    insertionLoop(bulk, grouped);
+    bulk.execute(function () {
         //console.log("result ", err || result);
         finish = new Date();
         console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");

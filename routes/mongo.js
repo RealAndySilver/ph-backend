@@ -8,15 +8,25 @@ var tempArray = [];
 var flag = true;
 var mkdirp = require('mkdirp');
 var getDirName = require('path').dirname;
-
+var _ = require('underscore');
 
 var file = './public/mongo_average.csv';
+
+/*var MongoClient = require('mongodb').MongoClient
+  , Server = require('mongodb').Server;
+
+var mongoClient = new MongoClient(new Server('localhost', 27017));
+mongoClient.open(function(err, mongoClient) {
+  var db1 = mongoClient.db("mydb");
+
+  mongoClient.close();
+});*/
 
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
     if (err) return console.log(err)
     db = database
-})
+});
 
 var router = function (app) {
     /* GET home page. */
@@ -65,7 +75,7 @@ var router = function (app) {
                 var value = bigdata[i];
                 var file = value.file;
                 if (file) {
-                    var dir = "/data/" + value.var + "/" + value.txt +"/"+ file.size;
+                    var dir = "/data/" + value.var + "/" + value.txt + "/" + file.size;
                     var file_path = dir + "/" + i + "_" + value.date + file.ext;
 
                     var b = new Buffer(value.file.bin.data);
@@ -91,7 +101,7 @@ var router = function (app) {
         var bigdata = req.body.bigdata;
         //console.log("big-data: " + JSON.stringify(bigdata));
         //if (typeof bigdata == Array) {
-        var array = [];
+        //var array = [];
         /*array.push({
             "tag": 'sensor_1',
             "creation_time": new Date(),
@@ -102,6 +112,8 @@ var router = function (app) {
                 globalArray.push(bigdata[i]);
             }
         }
+
+        processArray();
         //array[0].data_array = array2;
         //globalArray = array;
     })
@@ -117,7 +129,91 @@ function writeFile(path, contents, cb) {
     });
 }
 
-setInterval(function () {
+function processArray() {
+    if (flag) {
+        flag = false;
+        tempArray = [];
+        //console.log("globalArray ",globalArray[0]);
+        tempArray = globalArray.slice();
+        globalArray = [];
+        if (tempArray.length != 0) {
+            //console.log("tempArray1: ", tempArray);
+
+            var grouped = _.chain(tempArray).groupBy("txt").map(function (data, tag) {
+                // Optionally remove product_id from each record
+                var dataArray = _.map(data, function (it) {
+                    return _.omit(it, "txt");
+                });
+                return {
+                    tag: tag,
+                    data: dataArray
+                };
+            }).value();
+
+            start = new Date();
+            console.log("executing my stuff");
+            var row_size = tempArray.length;
+            console.log("rows to insert: ", row_size)
+            /*MongoClient.connect(url, (err, database) => {
+                if (err) return console.log(err)
+                db = database
+            });*/
+            insertionLoop(db, grouped, function (err, result) {
+                //console.log("result ", err || result);
+                flag = true;
+                console.log("success!!");
+                finish = new Date();
+                var time = (finish.getTime() - start.getTime());
+                console.log("Operation took " + time);
+                try {
+                    fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
+                } catch (e) {
+
+                }
+                /*db.close();*/
+            });
+
+        } else {
+            flag = true;
+        }
+
+    }
+}
+
+var insertionLoop = function (db, grouped, callback) {
+    for (let item of grouped) {
+        db.collection('basic').updateOne(
+            {
+                "tag": item.tag
+            }, {
+                $push: {
+                    "data_array": item.data
+                }
+            }, {
+                upsert: true
+            }, function (err, result) {
+                //db.close();
+                //console.log("result ", err || result);
+            });
+    }
+    callback();
+}
+
+var bulkUpdateLoop = function (bulk, grouped) {
+    for (let item of grouped) {
+        bulk.find({
+            "tag": item.tag
+        }).upsert().update({
+            $push: {
+                "data_array": item.data
+            }
+        }, function (err, result) {
+            //console.log("result ", err || result);
+        });
+    }
+}
+
+/*setInterval(function () {
     if (flag) {
         flag = false;
         tempArray = [];
@@ -125,7 +221,7 @@ setInterval(function () {
         tempArray = globalArray.slice();
         globalArray = [];
 
-        //console.log("tempArray ", tempArray[0]);
+        console.log("tempArray ", tempArray[0]);
         if (tempArray.length != 0) {
             //console.log("tempArray1: ", tempArray);
             start = new Date();
@@ -134,8 +230,8 @@ setInterval(function () {
             console.log("rows to insert: ", row_size)
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (let value of tempArray) {
-                bulkInsertDocument(bulk, value);
-                //bulkUpdateDocument(bulk, tempArray);//[num])
+                //bulkInsertDocument(bulk, value);
+                bulkUpdateDocument(bulk, tempArray);//[num])
             }
             bulk.execute(function () {
                 flag = true;
@@ -148,7 +244,6 @@ setInterval(function () {
                 } catch (e) {
 
                 }
-
             });
 
         } else {
@@ -156,7 +251,7 @@ setInterval(function () {
         }
 
     }
-}, 1000);
+}, 1000);*/
 
 
 // insert a row

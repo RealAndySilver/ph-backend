@@ -19,7 +19,7 @@ MongoClient.connect(url, function (err, db) {
     for (var num = 0; num < size; num++) {
         array.push({
             "txt": 'Hello!',
-            "val": num,
+            "val": Math.random(),
             "date": new Date()
         });
     }
@@ -27,9 +27,10 @@ MongoClient.connect(url, function (err, db) {
     console.log("executing my stuff");
     db.collection('basic').insertMany(array, function (err, result) {
         //assert.equal(err, null);
-        console.log("result ", err || result);
+        //console.log("result ", err || result);
         finish = new Date();
         console.log("bulk Operation took " + (finish.getTime() - start.getTime()) + " ms");
+        db.close();
     });
     /*var bulk = db.collection('basic').initializeUnorderedBulkOp();
     for (var num = 0; num < size; num++) {
