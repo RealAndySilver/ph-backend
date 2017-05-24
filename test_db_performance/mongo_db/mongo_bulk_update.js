@@ -70,7 +70,6 @@ MongoClient.connect(url, function (err, db) {
             data: dataArray
         };
     }).value();
-    //console.log("groups", grouped);
     start = new Date();
     console.log("executing my stuff");
     var bulk = db.collection('basic').initializeUnorderedBulkOp();

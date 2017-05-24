@@ -78,13 +78,19 @@ var router = function (app) {
                     var dir = "/data/" + value.var + "/" + value.txt + "/" + file.size;
                     var file_path = dir + "/" + i + "_" + value.date + file.ext;
 
+                    start = new Date();
                     var b = new Buffer(value.file.bin.data);
                     writeFile(file_path, b);
+                    finish = new Date();
+                    var time = (finish.getTime() - start.getTime());
+                    console.log("Upload operation took " + time);
+
                     globalArray.push(
                         {
                             txt: value.txt,
                             val: file_path,
-                            date: value.date
+                            date: value.date,
+                            var: value.var
                         }
                     );
                 } else {
@@ -213,15 +219,13 @@ var bulkUpdateLoop = function (bulk, grouped) {
     }
 }
 
-/*setInterval(function () {
+setInterval(function () {
     if (flag) {
         flag = false;
         tempArray = [];
         //console.log("globalArray ",globalArray[0]);
         tempArray = globalArray.slice();
         globalArray = [];
-
-        console.log("tempArray ", tempArray[0]);
         if (tempArray.length != 0) {
             //console.log("tempArray1: ", tempArray);
             start = new Date();
@@ -230,29 +234,27 @@ var bulkUpdateLoop = function (bulk, grouped) {
             console.log("rows to insert: ", row_size)
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (let value of tempArray) {
-                //bulkInsertDocument(bulk, value);
-                bulkUpdateDocument(bulk, tempArray);//[num])
+                bulkInsertDocument(bulk, value);
+                //bulkUpdateDocument(bulk, tempArray);//[num])
             }
             bulk.execute(function () {
                 flag = true;
                 console.log("success!!");
                 finish = new Date();
                 var time = (finish.getTime() - start.getTime());
-                console.log("Operation took " + time);
+                console.log("Insert operation took " + time);
                 try {
                     fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
                 } catch (e) {
 
                 }
             });
-
         } else {
             flag = true;
         }
 
     }
-}, 1000);*/
-
+}, 1000);
 
 // insert a row
 var bulkInsertDocument = function (bulk, array) {
