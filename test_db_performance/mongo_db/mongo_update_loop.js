@@ -12,20 +12,13 @@ var _ = require('underscore');
 
 var size = 100000;
 
-var insertDocument = function (db) {
-    db.collection('basic').insertOne({
-        "tag": 'sensor_1',
-        "creation_time": new Date(),
-        "data_array": []
-    });
-};
-
 var theArray = [];
+
+var crypto = require('crypto');
+var format = require('biguint-format');
 
 var insertionLoop = function (db, grouped, callback) {
     for (let item of grouped) {
-        //console.log(item);
-        //theArray.push(item.dataarray)
         db.collection('basic').updateOne(
             {
                 "tag": item.tag
@@ -46,22 +39,21 @@ var insertionLoop = function (db, grouped, callback) {
 MongoClient.connect(url, function (err, db) {
     //insertDocument(db);
     var array = [];
-
     var n = 1;
-
     for (var num = 0; num < size; num++) {
         array.push({
             "tag": 'sensor_' + n,
-            "val": Math.random(),
-            "date": new Date()
+            //"val": Math.random()*-1,
+            //"val": new Buffer(Math.random() * 50).toString('base64'),
+            "val": format(crypto.randomBytes(4)),
+            "date": new Date(),
+            "var":"PV"
         });
         n++;
         if (n > 1000) {
             n = 1;
         }
     }
-
-    //var groups = _.omit("tag", _.groupBy(array, "tag"));
 
     var grouped = _.chain(array).groupBy("tag").map(function (data, tag) {
         // Optionally remove product_id from each record
@@ -73,7 +65,6 @@ MongoClient.connect(url, function (err, db) {
             data: dataArray
         };
     }).value();
-    //console.log("groups", grouped);
     start = new Date();
     console.log("executing my stuff");
 

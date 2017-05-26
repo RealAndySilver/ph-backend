@@ -10,17 +10,26 @@ var start, finish;
 
 var size = 100000;
 
-
+var crypto = require('crypto');
+var format = require('biguint-format');
 
 MongoClient.connect(url, function (err, db) {
-    
+
     assert.equal(null, err);
     var array = [];
     for (var num = 0; num < size; num++) {
         array.push({
-            "txt": 'Hello!',
-            "val": Math.random(),
-            "date": new Date()
+            //"txt": 'random_positive',
+            //"txt": 'random_negative',
+            //"txt": 'n_32bit_integer',
+            //"txt": 'n_64bit_integer',
+            "txt": 'n_base64_string',
+            //"val": Math.random(),
+            //"val": Math.random()*-1,
+            "val": new Buffer(Math.random() * 50).toString('base64'),
+            //"val": format(crypto.randomBytes(8)),
+            "date": new Date(),
+            "var": "PV"
         });
     }
     start = new Date();
@@ -29,7 +38,7 @@ MongoClient.connect(url, function (err, db) {
         //assert.equal(err, null);
         //console.log("result ", err || result);
         finish = new Date();
-        console.log("bulk Operation took " + (finish.getTime() - start.getTime()) + " ms");
+        console.log("Operation took " + (finish.getTime() - start.getTime()) + " ms");
         db.close();
     });
     /*var bulk = db.collection('basic').initializeUnorderedBulkOp();

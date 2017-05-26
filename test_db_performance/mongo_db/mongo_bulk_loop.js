@@ -24,7 +24,8 @@ MongoClient.connect(url, function (err, db) {
   var array = [];
   for (var num = 0; num < size; num++) {
     array.push({
-      //"txt": 'random_positive!',
+      //"txt": 'random_positive',
+      //"txt": 'random_positive',
       //"txt": 'n_32bit_integer',
       //"txt": 'n_64bit_integer',
       "txt": 'n_base64_string',

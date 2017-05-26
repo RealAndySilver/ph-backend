@@ -46,7 +46,7 @@ var router = function (app) {
             db.close();
         });
         finish = new Date();
-        var time = (finish.getTime() - start.getTime()) + " ms";
+        var time = ((finish.getTime() - start.getTime())/1000) + " s";
         console.log("Operation took " + time);
         res.send({ "Number of rows inserted": size, "Time spent": time });
     });
@@ -82,7 +82,7 @@ var router = function (app) {
                     var b = new Buffer(value.file.bin.data);
                     writeFile(file_path, b);
                     finish = new Date();
-                    var time = (finish.getTime() - start.getTime());
+                    var time = ((finish.getTime() - start.getTime())/1000) + " s";
                     console.log("Upload operation took " + time);
 
                     globalArray.push(
@@ -101,27 +101,16 @@ var router = function (app) {
         }
     });
 
-    //mongo api update 
+    //mongo api insert by update 
     app.post('/mongo-api/big-data-update', function (req, res) {
         res.send("ok");
         var bigdata = req.body.bigdata;
-        //console.log("big-data: " + JSON.stringify(bigdata));
-        //if (typeof bigdata == Array) {
-        //var array = [];
-        /*array.push({
-            "tag": 'sensor_1',
-            "creation_time": new Date(),
-            "data_array":[]
-        })*/
         if (bigdata.length != 0) {
             for (var i = 0; i < bigdata.length; i++) {
                 globalArray.push(bigdata[i]);
             }
         }
-
         processArray();
-        //array[0].data_array = array2;
-        //globalArray = array;
     })
 
 
@@ -130,7 +119,6 @@ var router = function (app) {
 function writeFile(path, contents, cb) {
     mkdirp(getDirName(path), function (err) {
         if (err) return console.log(err);
-
         fs.writeFileSync(path, contents);
     });
 }
@@ -139,12 +127,9 @@ function processArray() {
     if (flag) {
         flag = false;
         tempArray = [];
-        //console.log("globalArray ",globalArray[0]);
         tempArray = globalArray.slice();
         globalArray = [];
         if (tempArray.length != 0) {
-            //console.log("tempArray1: ", tempArray);
-
             var grouped = _.chain(tempArray).groupBy("txt").map(function (data, tag) {
                 // Optionally remove product_id from each record
                 var dataArray = _.map(data, function (it) {
@@ -157,7 +142,6 @@ function processArray() {
             }).value();
 
             start = new Date();
-            console.log("executing my stuff");
             var row_size = tempArray.length;
             console.log("rows to insert: ", row_size)
             /*MongoClient.connect(url, (err, database) => {
@@ -229,7 +213,6 @@ setInterval(function () {
         if (tempArray.length != 0) {
             //console.log("tempArray1: ", tempArray);
             start = new Date();
-            console.log("executing my stuff");
             var row_size = tempArray.length;
             console.log("rows to insert: ", row_size)
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
@@ -241,7 +224,7 @@ setInterval(function () {
                 flag = true;
                 console.log("success!!");
                 finish = new Date();
-                var time = (finish.getTime() - start.getTime());
+                var time = ((finish.getTime() - start.getTime())/1000) + " s";
                 console.log("Insert operation took " + time);
                 try {
                     fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
