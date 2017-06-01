@@ -81,11 +81,10 @@ var router = function (app) {
     app.post('/mongo-api/big-data', upload.array("upload_files"), function (req, res) {
         res.send("ok");
         var files = req.files;
-        console.log("file: ", file);
-        var bigdata = req.body;
+        var bigdata = req.body.bigdata;
         //if (typeof bigdata == Array) {    
         //console.log("big data: ", files.length);
-        if (bigdata.tag.length != 0) {
+        if (files) {
             //for (let value of bigdata) {
             for (var i = 0; i < files.length; i++) {
 
@@ -100,32 +99,29 @@ var router = function (app) {
                     var file_size = bigdata.file_size;
                     var date = new Date(bigdata.date);
                 }
-                if (files) {
-                    var dir = "/data/" + vr + "/" + tag + "/" + file_size;
-                    var file_path = dir + "/" + files[i].originalname;
+                var dir = "/data/" + vr + "/" + tag + "/" + file_size;
+                var file_path = dir + "/" + files[i].originalname;
 
-                    start = new Date();
-                    //var b = new Buffer(value.file.bin.data);
-                    writeFile(file_path, files[i].buffer);
-                    finish = new Date();
-                    var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
-                    console.log("Upload operation took " + time);
+                start = new Date();
+                //var b = new Buffer(value.file.bin.data);
+                writeFile(file_path, files[i].buffer);
+                finish = new Date();
+                var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
+                console.log("Upload operation took " + time);
 
-                    globalArray.push(
-                        {
-                            tag: tag,
-                            val: file_path,
-                            date: date,
-                            var: vr
-                        }
-                    );
-                } else {
-                    globalArray.push(value);
-                }
+                globalArray.push(
+                    {
+                        tag: tag,
+                        val: file_path,
+                        date: date,
+                        var: vr
+                    }
+                );
             }
-
-            console.log("globalArray: ", globalArray);
-
+        } else {
+            for (var i = 0; i < bigdata.length; i++) { 
+                    globalArray.push(bigdata[i]);
+            }
         }
     });
 
