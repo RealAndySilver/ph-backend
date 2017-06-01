@@ -9,6 +9,9 @@ var flag = true;
 var mkdirp = require('mkdirp');
 var getDirName = require('path').dirname;
 var _ = require('underscore');
+var multer = require('multer');
+var upload = multer();
+
 
 var file = './public/mongo_average.csv';
 
@@ -46,7 +49,7 @@ var router = function (app) {
             db.close();
         });
         finish = new Date();
-        var time = ((finish.getTime() - start.getTime())/1000) + " s";
+        var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
         console.log("Operation took " + time);
         res.send({ "Number of rows inserted": size, "Time spent": time });
     });
@@ -63,40 +66,65 @@ var router = function (app) {
         }
     });
 
-    // mongo api insert n rows (with images & videos)
-    app.post('/mongo-api/big-data', function (req, res) {
+    // upload file
+    app.post('/upload', upload.single('my_file'), function (req, res) {
+
+        console.log("uploading bitch");
+
+        var file = req.file;
+        console.log("file: ", file);
+
         res.send("ok");
-        var bigdata = req.body.bigdata;
-        var binArray = [];
-        //if (typeof bigdata == Array) {
-        if (bigdata.length != 0) {
+    });
+
+    // mongo api insert n rows (with images & videos)
+    app.post('/mongo-api/big-data', upload.array("upload_files"), function (req, res) {
+        res.send("ok");
+        var files = req.files;
+        console.log("file: ", file);
+        var bigdata = req.body;
+        //if (typeof bigdata == Array) {    
+        //console.log("big data: ", files.length);
+        if (bigdata.tag.length != 0) {
             //for (let value of bigdata) {
-            for (var i = 0; i < bigdata.length; i++) {
-                var value = bigdata[i];
-                var file = value.file;
-                if (file) {
-                    var dir = "/data/" + value.var + "/" + value.txt + "/" + file.size;
-                    var file_path = dir + "/" + i + "_" + value.date + file.ext;
+            for (var i = 0; i < files.length; i++) {
+
+                if (files.length > 1) {
+                    var vr = bigdata.var[i];
+                    var tag = bigdata.tag[i];
+                    var file_size = bigdata.file_size[i];
+                    var date = new Date(bigdata.date[i]);
+                } else {
+                    var vr = bigdata.var;
+                    var tag = bigdata.tag;
+                    var file_size = bigdata.file_size;
+                    var date = new Date(bigdata.date);
+                }
+                if (files) {
+                    var dir = "/data/" + vr + "/" + tag + "/" + file_size;
+                    var file_path = dir + "/" + files[i].originalname;
 
                     start = new Date();
-                    var b = new Buffer(value.file.bin.data);
-                    writeFile(file_path, b);
+                    //var b = new Buffer(value.file.bin.data);
+                    writeFile(file_path, files[i].buffer);
                     finish = new Date();
-                    var time = ((finish.getTime() - start.getTime())/1000) + " s";
+                    var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
                     console.log("Upload operation took " + time);
 
                     globalArray.push(
                         {
-                            txt: value.txt,
+                            tag: tag,
                             val: file_path,
-                            date: value.date,
-                            var: value.var
+                            date: date,
+                            var: vr
                         }
                     );
                 } else {
                     globalArray.push(value);
                 }
             }
+
+            console.log("globalArray: ", globalArray);
 
         }
     });
@@ -224,7 +252,7 @@ setInterval(function () {
                 flag = true;
                 console.log("success!!");
                 finish = new Date();
-                var time = ((finish.getTime() - start.getTime())/1000) + " s";
+                var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
                 console.log("Insert operation took " + time);
                 try {
                     fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
