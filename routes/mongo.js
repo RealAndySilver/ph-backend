@@ -81,9 +81,9 @@ var router = function (app) {
     app.post('/mongo-api/big-data', upload.array("upload_files"), function (req, res) {
         res.send("ok");
         var files = req.files;
-        var bigdata = req.body.bigdata;
-        //if (typeof bigdata == Array) {    
-        //console.log("big data: ", files.length);
+        var bigdata = req.body;
+
+        //if (typeof bigdata == Array) {  
         if (files) {
             //for (let value of bigdata) {
             for (var i = 0; i < files.length; i++) {
@@ -119,8 +119,9 @@ var router = function (app) {
                 );
             }
         } else {
-            for (var i = 0; i < bigdata.length; i++) { 
-                    globalArray.push(bigdata[i]);
+            bigdata = req.body.bigdata;
+            for (var i = 0; i < bigdata.length; i++) {
+                globalArray.push(bigdata[i]);
             }
         }
     });
@@ -128,7 +129,7 @@ var router = function (app) {
     //mongo api insert by update 
     app.post('/mongo-api/big-data-update', function (req, res) {
         res.send("ok");
-        var bigdata = req.body.bigdata;
+        bigdata = req.body.bigdata;
         if (bigdata.length != 0) {
             for (var i = 0; i < bigdata.length; i++) {
                 globalArray.push(bigdata[i]);
