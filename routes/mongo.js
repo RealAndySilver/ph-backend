@@ -12,18 +12,8 @@ var _ = require('underscore');
 var multer = require('multer');
 var upload = multer();
 
-
 var file = './public/mongo_average.csv';
 
-/*var MongoClient = require('mongodb').MongoClient
-  , Server = require('mongodb').Server;
-
-var mongoClient = new MongoClient(new Server('localhost', 27017));
-mongoClient.open(function(err, mongoClient) {
-  var db1 = mongoClient.db("mydb");
-
-  mongoClient.close();
-});*/
 
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
@@ -82,7 +72,6 @@ var router = function (app) {
         res.send("ok");
         var files = req.files;
         var bigdata = req.body;
-
         //if (typeof bigdata == Array) {  
         if (files) {
             //for (let value of bigdata) {
@@ -99,16 +88,16 @@ var router = function (app) {
                     var file_size = bigdata.file_size;
                     var date = new Date(bigdata.date);
                 }
-                var dir = "/data/" + vr + "/" + tag + "/" + file_size;
+                var dir = "./data/" + vr + "/" + tag + "/" + file_size;
                 var file_path = dir + "/" + files[i].originalname;
 
                 start = new Date();
                 //var b = new Buffer(value.file.bin.data);
-                writeFile(file_path, files[i].buffer);
-                finish = new Date();
-                var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
-                console.log("Upload operation took " + time);
-
+                writeFile(file_path, files[i].buffer, function (err, result) {
+                    finish = new Date();
+                    var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
+                    console.log("Upload operation took " + time);
+                });
                 globalArray.push(
                     {
                         tag: tag,
@@ -137,15 +126,17 @@ var router = function (app) {
         }
         processArray();
     })
-
-
 }
 
-function writeFile(path, contents, cb) {
+function writeFile(path, contents, callback) {
     mkdirp(getDirName(path), function (err) {
         if (err) return console.log(err);
-        fs.writeFileSync(path, contents);
+        fs.writeFile(path, contents, function(err, res){
+            callback(err, res);
+        });
+        
     });
+    
 }
 
 function processArray() {
@@ -168,11 +159,7 @@ function processArray() {
 
             start = new Date();
             var row_size = tempArray.length;
-            console.log("rows to insert: ", row_size)
-            /*MongoClient.connect(url, (err, database) => {
-                if (err) return console.log(err)
-                db = database
-            });*/
+            console.log("rows to insert: ", row_size);
             insertionLoop(db, grouped, function (err, result) {
                 //console.log("result ", err || result);
                 flag = true;
@@ -232,7 +219,6 @@ setInterval(function () {
     if (flag) {
         flag = false;
         tempArray = [];
-        //console.log("globalArray ",globalArray[0]);
         tempArray = globalArray.slice();
         globalArray = [];
         if (tempArray.length != 0) {
@@ -243,13 +229,12 @@ setInterval(function () {
             var bulk = db.collection('basic').initializeUnorderedBulkOp();
             for (let value of tempArray) {
                 bulkInsertDocument(bulk, value);
-                //bulkUpdateDocument(bulk, tempArray);//[num])
             }
             bulk.execute(function () {
                 flag = true;
                 console.log("success!!");
                 finish = new Date();
-                var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
+                var time = ((finish.getTime() - start.getTime()) / 1000);
                 console.log("Insert operation took " + time);
                 try {
                     fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
