@@ -20,8 +20,10 @@ MongoClient.connect(url, (err, database) => {
     if (err) return console.log(err)
     db = database
 });
-
-var router = function (app) {
+var log = '';
+var router = function (app, io) {
+	
+	
     /* GET home page. */
     app.get('/mongo-api', function (req, res, next) {
         res.send("Mongo DB");
@@ -59,8 +61,6 @@ var router = function (app) {
     // upload file
     app.post('/upload', upload.single('my_file'), function (req, res) {
 
-        console.log("uploading bitch");
-
         var file = req.file;
         console.log("file: ", file);
 
@@ -72,31 +72,42 @@ var router = function (app) {
         res.send("ok");
         var files = req.files;
         var bigdata = req.body;
+        var dir = '';
+        var vr;
+        var tag;
+        var file_size;
+        var date;
+        var file_path = '';
+        
         //if (typeof bigdata == Array) {  
         if (files) {
             //for (let value of bigdata) {
             for (var i = 0; i < files.length; i++) {
 
                 if (files.length > 1) {
-                    var vr = bigdata.var[i];
-                    var tag = bigdata.tag[i];
-                    var file_size = bigdata.file_size[i];
-                    var date = new Date(bigdata.date[i]);
+                    vr = bigdata.var[i];
+                    tag = bigdata.tag[i];
+                    file_size = bigdata.file_size[i];
+                    date = new Date(bigdata.date[i]);
                 } else {
-                    var vr = bigdata.var;
-                    var tag = bigdata.tag;
-                    var file_size = bigdata.file_size;
-                    var date = new Date(bigdata.date);
+                    vr = bigdata.var;
+                    tag = bigdata.tag;
+                    file_size = bigdata.file_size;
+                    date = new Date(bigdata.date);
                 }
-                var dir = "./data/" + vr + "/" + tag + "/" + file_size;
-                var file_path = dir + "/" + files[i].originalname;
+                dir = "./data/tags/" + tag + "/" + vr + "/" + file_size;
+                file_path = dir + "/" + files[i].originalname;
 
                 start = new Date();
                 //var b = new Buffer(value.file.bin.data);
-                writeFile(file_path, files[i].buffer, function (err, result) {
+                writeFile(file_path, files[i].buffer, function (err) {
+	                if(err){
+		                console.log('Err:', err);
+	                }
                     finish = new Date();
                     var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
-                    console.log("Upload operation took " + time);
+                    log = vr + "Upload '+  +'operation took " + time;
+                    console.log(vr + "Upload '+  +'operation took " + time);
                 });
                 globalArray.push(
                     {
@@ -125,14 +136,24 @@ var router = function (app) {
             }
         }
         processArray();
-    })
+    });
+    var i=0;
+    io.on('connection', function (socket) {
+	    console.log("connected");
+	    socket.on('counting requests', function () {
+		    console.log('counting ',log);
+	        socket.emit('counting requests', {
+	            numRequests: log
+	        });
+	    });
+	});
 }
 
 function writeFile(path, contents, callback) {
     mkdirp(getDirName(path), function (err) {
         if (err) return console.log(err);
-        fs.writeFile(path, contents, function(err, res){
-            callback(err, res);
+        fs.writeFile(path, contents, function(err){
+            callback(err);
         });
         
     });
@@ -236,6 +257,7 @@ setInterval(function () {
                 finish = new Date();
                 var time = ((finish.getTime() - start.getTime()) / 1000);
                 console.log("Insert operation took " + time);
+                log = "Insert operation took " + time;
                 try {
                     fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
                 } catch (e) {
