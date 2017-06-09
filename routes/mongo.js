@@ -58,8 +58,8 @@ var router = function (app, io) {
                     }
                     finish = new Date();
                     var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
-                    log = vr + "Upload '+  +'operation took " + time;
-                    console.log(vr + "Upload '+  +'operation took " + time);
+                    log = vr + " Upload '+  +'operation took " + time;
+                    console.log(vr + " Upload '+  +'operation took " + time);
                 });
                 globalArray.push(
                     {
@@ -89,7 +89,6 @@ var router = function (app, io) {
         }
         processArray();
     });
-    var i = 0;
     io.on('connection', function (socket) {
         console.log("connected");
         socket.on('counting requests', function () {
@@ -111,47 +110,10 @@ function writeFile(path, contents, callback) {
     });
 }
 
-//alternative process for upsert version
-function processArray() {
-    if (flag) {
-        flag = false;
-        tempArray = [];
-        tempArray = globalArray.slice();
-        globalArray = [];
-        if (tempArray.length != 0) {
-            var grouped = _.chain(tempArray).groupBy("txt").map(function (data, tag) {
-                // Optionally remove product_id from each record
-                var dataArray = _.map(data, function (it) {
-                    return _.omit(it, "txt");
-                });
-                return {
-                    tag: tag,
-                    data: dataArray
-                };
-            }).value();
-
-            start = new Date();
-            var row_size = tempArray.length;
-            console.log("rows to insert: ", row_size);
-            upsertLoop(db, grouped, function (err, result) {
-                flag = true;
-                console.log("success!!");
-                finish = new Date();
-                var time = (finish.getTime() - start.getTime());
-                console.log("Operation took " + time);
-                try {
-                    fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
-                } catch (e) {
-
-                }
-            });
-
-        } else {
-            flag = true;
-        }
-
-    }
-}
+// Bulk Insert
+var bulkInsertDocument = function (bulk, array) {
+    bulk.insert(array);
+};
 
 //Upsert
 var upsertLoop = function (db, grouped, callback) {
@@ -222,21 +184,46 @@ setInterval(function () {
     }
 }, 1000);
 
-// Bulk Insert
-var bulkInsertDocument = function (bulk, array) {
-    bulk.insert(array);
-};
+//alternative process for upsert version
+function processArray() {
+    if (flag) {
+        flag = false;
+        tempArray = [];
+        tempArray = globalArray.slice();
+        globalArray = [];
+        if (tempArray.length != 0) {
+            var grouped = _.chain(tempArray).groupBy("txt").map(function (data, tag) {
+                // Optionally remove product_id from each record
+                var dataArray = _.map(data, function (it) {
+                    return _.omit(it, "txt");
+                });
+                return {
+                    tag: tag,
+                    data: dataArray
+                };
+            }).value();
 
-// Bulk Update
-var bulkUpdateDocument = function (bulk, array) {
-    bulk.find({ "tag": array[0].txt }).upsert().updateOne({
-        $set: {
-            "creation_time": new Date()
-        },
-        $push: {
-            "data_array": array
+            start = new Date();
+            var row_size = tempArray.length;
+            console.log("rows to insert: ", row_size);
+            upsertLoop(db, grouped, function (err, result) {
+                flag = true;
+                console.log("success!!");
+                finish = new Date();
+                var time = (finish.getTime() - start.getTime());
+                console.log("Operation took " + time);
+                try {
+                    fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
+                } catch (e) {
+
+                }
+            });
+
+        } else {
+            flag = true;
         }
-    });
-};
+
+    }
+}
 
 module.exports = router;
