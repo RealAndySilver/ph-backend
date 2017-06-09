@@ -3,19 +3,21 @@
 (function () {
 
     var socket = io();
-    var $counter = $('.counter'); // div counter
+    var $insertion = {
+	    counter : $('.insertion_counter'), // div counter
+		time : $('.insertion_time'),
+		date : $('.insertion_date')
+	};
 
-    var countRequests = function() {
-        socket.emit('counting requests');
-    };
-    setInterval(countRequests, 1000); // call every second
-
-    socket.on('counting requests', function (data) {
-        onCountingRequests(data)
+    socket.on('getServerInfo', function (data) {
+        setData(data)
     });
 
-    function onCountingRequests(data) {
-        $counter.val(data.numRequests);
+    function setData(data) {
+	    console.log('Data',data);
+        $insertion.counter.val(data.log.insert.rows_inserted);
+        $insertion.time.val(data.log.insert.insertion_time);
+        $insertion.date.val(new Date(data.log.insert.insertion_date));
     }
 
 })();

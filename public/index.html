@@ -8,9 +8,15 @@
 <body>
 
   <div class="container" >
-      Number of requests:
-    <input class="counter" readonly/>
+	<h1>Inserts:</h1>
+	<br>
+	<p>
+	    <h2>Last inserted at:</h2> <input class="insertion_date" readonly/>
+	    <h2>Rows inserted:</h2> <input class="insertion_counter" readonly/>
+	    <h2>Insertion Time:<h2> <input class="insertion_time" readonly/>
+    </p>
   </div>
+  
 
   <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>

@@ -18,6 +18,22 @@ a {
   width: 100%;
   
 }
+.insertion_date{
+	border: none;
+	font-weight: bold;
+	width: 100%;	
+}
+.insertion_counter{
+  border: none;
+  width: 100%;
+}
+.insertion_time{
+  border: none;
+  width: 100%;
+}
 .container{
-	
+	width: 300px;
+	float: left;
+	margin-left: 10px;
+	background: #efefef;
 }

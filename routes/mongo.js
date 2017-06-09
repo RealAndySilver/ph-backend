@@ -13,14 +13,28 @@ var multer = require('multer');
 var upload = multer();
 
 var file = './public/mongo_average.csv';
-
+var socket;
 
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
     if (err) return console.log(err)
     db = database
 });
-var log = '';
+var log = {
+	upload : {
+		
+	},
+	insert : {
+		
+	}
+};
+var emit = function(){
+	if(socket){
+		socket.emit('getServerInfo', {
+	        log: log
+	    });
+    }
+};
 var router = function (app, io) {
 	
 	
@@ -106,7 +120,7 @@ var router = function (app, io) {
 	                }
                     finish = new Date();
                     var time = ((finish.getTime() - start.getTime()) / 1000) + " s";
-                    log = vr + "Upload '+  +'operation took " + time;
+                    log.upload.message = vr + "Upload '+  +'operation took " + time;
                     console.log(vr + "Upload '+  +'operation took " + time);
                 });
                 globalArray.push(
@@ -138,14 +152,9 @@ var router = function (app, io) {
         processArray();
     });
     var i=0;
-    io.on('connection', function (socket) {
+    io.on('connection', function (socket_m) {
 	    console.log("connected");
-	    socket.on('counting requests', function () {
-		    console.log('counting ',log);
-	        socket.emit('counting requests', {
-	            numRequests: log
-	        });
-	    });
+	    socket = socket_m;
 	});
 }
 
@@ -257,7 +266,11 @@ setInterval(function () {
                 finish = new Date();
                 var time = ((finish.getTime() - start.getTime()) / 1000);
                 console.log("Insert operation took " + time);
-                log = "Insert operation took " + time;
+                log.insert.final_time = "Insert operation took " + time;
+                log.insert.rows_inserted = tempArray.length;
+				log.insert.insertion_time = time + 's';
+				log.insert.insertion_date = new Date();
+				emit();
                 try {
                     fs.appendFileSync(file, 'rows inserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
                 } catch (e) {
@@ -298,5 +311,6 @@ var insertDocument = function (db, req, callback) {
         callback();
     });
 };
+
 
 module.exports = router;
