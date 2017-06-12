@@ -18,7 +18,12 @@ var socket;
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
     if (err) return console.log(err)
-    db = database
+    db = database;
+    db.collection('basic').createIndex({tag:1}, function(){
+	    db.collection('basic').ensureIndex({tag:1}, {unique:true}, function(err, indexName) {
+	    	console.log('Indexed', indexName);
+	    });
+    });
 });
 var log = {
 	upload : {
@@ -161,6 +166,7 @@ var bulkUpdateLoop = function (bulk, grouped) {
 }
 
 // Main process executed every second
+/*
 setInterval(function () {
     if (flag) {
         flag = false;
@@ -197,6 +203,48 @@ setInterval(function () {
         }
 
     }
+}, 1000);
+*/
+
+function updateTest(){
+	var bulk = db.collection('basic').initializeUnorderedBulkOp();
+	var arr = [];
+	var start = null;
+	var finish = null;
+	var length = 30000;
+	let set = {};
+
+/*
+	for(var i = 0; i< 100000; i++){
+		arr.push({txt:123,var:'PV',date:new Date(), tag:'Tag'+i});
+	}
+*/
+	start = new Date();
+	console.log('Started upsert with ',length);
+	
+	//for (let item of arr) {
+	for(var i = 0; i< length; i++){
+		let hours = start.getHours();
+		let minutes = start.getMinutes();
+		let seconds = start.getSeconds();
+		set={};
+		set['value'+'.'+hours+'.'+minutes+'.'+seconds]={date:new Date(), val:Math.random()};
+        bulk.find({
+            "tag": 'Tag'+i
+        })
+        .upsert()
+        .update({
+            $set: set
+        });
+    }
+    bulk.execute(function(err,res){
+	    finish = new Date();
+	    arr = [];
+	    console.log('Finished in ',(finish.getTime() - start.getTime()));
+    });
+}
+setInterval(function(){
+	updateTest();
 }, 1000);
 
 //alternative process for upsert version
