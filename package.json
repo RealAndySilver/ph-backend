@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node index.js"
+    "start": "node --max_old_space_size=2048 --expose-gc index.js"
   },
   "dependencies": {
     "body-parser": "^1.16.1",

@@ -14,16 +14,33 @@ var upload = multer();
 
 var file = './public/mongo_average.csv';
 var socket;
-
+var db;
 //Connect to mongo
 MongoClient.connect(url, (err, database) => {
     if (err) return console.log(err)
     db = database;
     db.collection('basic').createIndex({tag:1}, function(){
 	    db.collection('basic').ensureIndex({tag:1}, {unique:true}, function(err, indexName) {
-	    	console.log('Indexed', indexName);
+	    	//console.log('Indexed', indexName);
 	    });
     });
+    db.collection('basic').createIndex({date:1}, function(){
+	    db.collection('basic').ensureIndex({date:1}, {unique:false}, function(err, indexName) {
+	    	//console.log('Indexed', indexName);
+	    });
+    });
+    
+    db.collection('past').createIndex({tag:1}, function(){
+	    db.collection('past').ensureIndex({tag:1}, {unique:true}, function(err, indexName) {
+	    	//console.log('Indexed', indexName);
+	    });
+    });
+    db.collection('past').createIndex({date:1}, function(){
+	    db.collection('past').ensureIndex({date:1}, {unique:false}, function(err, indexName) {
+	    	//console.log('Indexed', indexName);
+	    });
+    });
+    
 });
 var log = {
 	upload : {
@@ -205,48 +222,264 @@ setInterval(function () {
     }
 }, 1000);
 */
+var giant = {};
+setInterval(function () {
+    if (flag) {
+        flag = false;
+        tempArray = [];
+        tempArray = globalArray.slice();
+        globalArray = [];
+        if (tempArray.length != 0) {
+            var start = new Date();
+            var row_size = tempArray.length;
+            //console.log("rows to insert: ", row_size)
+            //var bulk = db.collection('basic').initializeUnorderedBulkOp();
+            //for (let value of tempArray) {
+	        //for (let i = 0; i<tempArray.length;i++) {
+		    tempArray.forEach(function(item){
+	            let date = {};
+	            date.date = new Date(item.date);
+	            date.year = date.date.getYear();
+                date.month = date.date.getMonth()+1;
+				date.day = date.date.getDate();
+				date.hours = date.date.getHours();
+				date.minutes = date.date.getMinutes();
+				date.seconds = date.date.getSeconds();
+				let set={};
+				if(!giant[item.tag]){
+					giant[item.tag] = {};
+					giant[item.tag].data = {};
+				}
+
+				/*if(!giant[item.tag]['data'+'.'+date.month+'.'+date.day+'.'+date.hours+'.'+date.minutes]){
+					giant[item.tag]['data'+'.'+date.month+'.'+date.day+'.'+date.hours+'.'+date.minutes] = {};
+					giant[item.tag]['data'+'.'+date.month+'.'+date.day+'.'+date.hours+'.'+date.minutes][date.seconds] = {};
+				}
+				giant[item.tag]['data'+'.'+date.month+'.'+date.day+'.'+date.hours+'.'+date.minutes][date.seconds] = item.val
+*///{/* d:date.date.getTime(), */ v:item.val};
+/*
+				if(!giant[item.tag].data['data'+'.'+date.minutes]){
+					giant[item.tag].data['data'+'.'+date.minutes] = {};
+					giant[item.tag].data['data'+'.'+date.minutes][date.seconds] = {};
+				}
+*/
+				giant[item.tag].date = new Date('2017', date.month, date.day , date.hours );
+				//giant[item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
+				giant[item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
+				//set['data'+'.'+date.month+'.'+date.day+'.'+date.hours+'.'+date.minutes+'.'+date.seconds]={date:date.date, val:tempArray[i].val};
+				//set.date = date;
+/*
+		        bulk.find({
+		            "tag": tempArray[i].tag + '_2017' + date.month + date.day + date.hours
+		        })
+		        .upsert()
+		        .update(
+		        {
+			    	//$inc: {qty:1},
+		            $set: set,
+		        });
+*/
+            });
+            //bulk.execute(function(err,res){
+	            //console.log(Object.keys(giant['Positive_PV_Sender0']));
+	            flag = true;
+			    var finish = new Date();
+			    arr = [];
+			    var time = ((finish.getTime() - start.getTime()) / 1000);
+			    //console.log('Success. Upsert operation took ',time,'s');
+			    //log.insert.final_time = "Insert operation took " + time;
+                //log.insert.rows_inserted = tempArray.length;
+				//log.insert.insertion_time = time + 's';
+				//log.insert.insertion_date = new Date();
+				//emit();
+				try {
+                    //fs.appendFileSync(file, 'rows upserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
+                } catch (e) {
+
+                }
+		    //});
+        } 
+        else {
+            flag = true;
+        }
+
+    }
+}, 1000);
+function clone(obj) {
+    if (null == obj || "object" != typeof obj) return obj;
+    var copy = obj.constructor();
+    for (var attr in obj) {
+        if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
+    }
+    return copy;
+}
+
+/*
+setInterval(function () {
+    if (flag) {
+        flag = false;
+        tempArray = [];
+        tempArray = globalArray.slice();
+        globalArray = [];
+        if (tempArray.length != 0) {
+            var start = new Date();
+            var row_size = tempArray.length;
+            console.log("rows to insert: ", row_size)
+            var bulk = db.collection('basic').initializeUnorderedBulkOp();
+            //for (let value of tempArray) {
+	        //for (let i = 0; i<tempArray.length;i++) {
+		    tempArray.forEach(function(item){
+	            let date = {};
+	            date.date = new Date(item.date);
+	            date.year = date.date.getYear();
+                date.month = date.date.getMonth()+1;
+				date.day = date.date.getDate();
+				date.hours = date.date.getHours();
+				date.minutes = date.date.getMinutes();
+				date.seconds = date.date.getSeconds();
+				let set={};
+				set[date.hours] = item.val;
+		        bulk.find({
+		           "tag": item.tag,
+				   "date": new Date('2017', date.month, date.day , date.hours )
+		        })
+		        .upsert()
+		        .update(
+		        {
+			    	//$inc: {qty:1},
+		            $push: set,
+		        });
+		        
+            });
+            bulk.execute(function(err,res){
+	            //console.log(Object.keys(giant['Positive_PV_Sender0']));
+	            flag = true;
+			    var finish = new Date();
+			    arr = [];
+			    var time = ((finish.getTime() - start.getTime()) / 1000);
+			    console.log('Success. Upsert operation took ',time,'s');
+			    //log.insert.final_time = "Insert operation took " + time;
+                //log.insert.rows_inserted = tempArray.length;
+				//log.insert.insertion_time = time + 's';
+				//log.insert.insertion_date = new Date();
+				//emit();
+				
+		    });
+        } 
+        else {
+            flag = true;
+        }
+
+    }
+}, 1000);
+*/
+/*
+setInterval(function(){
+	var date = new Date();
+	let seconds = date.getSeconds();
+	var keys = null;
+	if(seconds == 0){
+		keys = Object.keys(giant);
+		for (let i = 0; i<tempArray.length;i++) {
+			set['data'+'.'+date.month+'.'+date.day+'.'+date.hours+'.'+date.minutes+'.'+date.seconds]={date:date.date, val:tempArray[i].val};
+			//set.date = date;
+	        bulk.find({
+	            "tag": tempArray[i].tag + '_2017' + date.month + date.day + date.hours
+	        })
+	        .upsert()
+	        .update(
+	        {
+		    	//$inc: {qty:1},
+	            $set: set,
+	        });
+        }
+		bulk.execute(function(err,res){
+            console.log(Object.keys(giant));
+            flag = true;
+		    var finish = new Date();
+		    arr = [];
+		    var time = ((finish.getTime() - start.getTime()) / 1000);
+		    console.log('Success. Upsert operation took ',time,'s');
+		    //log.insert.final_time = "Insert operation took " + time;
+            //log.insert.rows_inserted = tempArray.length;
+			//log.insert.insertion_time = time + 's';
+			//log.insert.insertion_date = new Date();
+			//emit();
+			try {
+                //fs.appendFileSync(file, 'rows upserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
+            } catch (e) {
+
+            }
+	    });
+	}
+},1000);
+*/
 
 function updateTest(){
 	var bulk = db.collection('basic').initializeUnorderedBulkOp();
-	var arr = [];
+	var local_giant = clone(giant);//JSON.parse(JSON.stringify(giant));
+	giant = {};
+	var keys = Object.keys(local_giant);
 	var start = null;
 	var finish = null;
-	var length = 30000;
-	let set = {};
-
-/*
-	for(var i = 0; i< 100000; i++){
-		arr.push({txt:123,var:'PV',date:new Date(), tag:'Tag'+i});
-	}
-*/
 	start = new Date();
-	console.log('Started upsert with ',length);
+	console.log('Started upsert with ',keys.length);
 	
 	//for (let item of arr) {
-	for(var i = 0; i< length; i++){
-		let hours = start.getHours();
-		let minutes = start.getMinutes();
-		let seconds = start.getSeconds();
-		set={};
-		set['value'+'.'+hours+'.'+minutes+'.'+seconds]={date:new Date(), val:Math.random()};
+	for(let i = 0; i< keys.length; i++){
+		//set['value.'+hours+minutes+seconds+i]={date:new Date(), val:Math.random()};
+		//console.log(local_giant[keys[i]])
         bulk.find({
-            "tag": 'Tag'+i
+            "tag": keys[i],
+            "date": local_giant[keys[i]].date,
         })
         .upsert()
-        .update({
-            $set: set
+        .update(
+        {
+	    	//date : local_giant[keys[i]].date,
+            $set: local_giant[keys[i]].data
         });
     }
     bulk.execute(function(err,res){
 	    finish = new Date();
-	    arr = [];
-	    console.log('Finished in ',(finish.getTime() - start.getTime()));
+	    console.log('Finished in ',(finish.getTime() - start.getTime())/1000+'s');
     });
 }
 setInterval(function(){
 	updateTest();
-}, 1000);
+}, 60000);
 
+
+function move(){
+	var bulkInsert = db.collection('past').initializeUnorderedBulkOp()
+	var bulkRemove = db.collection('basic').initializeUnorderedBulkOp()
+	var x = 10000
+	var counter = 0
+	var date = new Date();
+	date.setMonth(date.getMonth()+1);
+	date.setHours(date.getHours()-1);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    console.log('Moving files from basic to past using date',date);
+	db.collection('basic').find({date:{$lte: date}}).forEach(function(doc){
+		bulkInsert.insert(doc);
+		bulkRemove.find({_id:doc._id}).removeOne();
+		counter ++;
+		if( counter % x == 0){
+			bulkInsert.execute()
+			bulkRemove.execute()
+			bulkInsert = db.collection('past').initializeUnorderedBulkOp()
+			bulkRemove = db.collection('basic').initializeUnorderedBulkOp()
+		}
+	});
+}
+setTimeout(function(){
+	move();
+}, 1000);
+setInterval(function(){
+	move();
+}, 60000*60);
 //alternative process for upsert version
 function processArray() {
     if (flag) {
