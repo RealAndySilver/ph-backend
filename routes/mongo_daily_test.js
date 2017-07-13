@@ -50,6 +50,22 @@ MongoClient.connect(url, (err, db) => {
 	    });
     });
     
+    db.collection('daily').createIndex({tag:1}, {unique:false}, function(){
+	    db.collection('daily').ensureIndex({tag:1}, {unique:false}, function(err, indexName) {
+	    	//console.log('Indexed', indexName);
+	    });
+    });
+    db.collection('daily').createIndex({date:1}, {unique:false}, function(){
+	    db.collection('daily').ensureIndex({date:1}, {unique:false}, function(err, indexName) {
+	    	//console.log('Indexed', indexName);
+	    });
+    });
+    db.collection('daily').createIndex({var:1}, {unique:false}, function(){
+	    db.collection('daily').ensureIndex({var:1}, {unique:false}, function(err, indexName) {
+	    	//console.log('Indexed', indexName);
+	    });
+    });
+    
     db.collection('tags').createIndex({tag:1}, {unique:false}, function(){
 	    db.collection('tags').ensureIndex({tag:1}, {unique:true}, function(err, indexName) {
 	    	//console.log('Indexed', indexName);
@@ -185,18 +201,18 @@ var router = function (app, io) {
 						if(!current[item.tag]){
 							current[item.tag] = [];
 						}
-						if(giant_copy[item]){
-							keys = Object.keys(giant_copy[item].data);
-							giant_copy[item].tag = item;
+						if(giant[item]){
+							keys = Object.keys(giant[item].data);
+							giant[item].tag = item;
 							keys.forEach(function(key){
 								let split_key = key.split(".");
-								final_obj.date = giant_copy[item].date;
-								final_obj.tag = giant_copy[item].tag;
-								final_obj.var = giant_copy[item].var;
+								final_obj.date = giant[item].date;
+								final_obj.tag = giant[item].tag;
+								final_obj.var = giant[item].var;
 								if(!final_obj.data[split_key[1]]){
 									final_obj.data[split_key[1]] = {};
 								}
-								final_obj.data[split_key[1]][split_key[2]] = giant_copy[item].data[key];
+								final_obj.data[split_key[1]][split_key[2]] = giant[item].data[key];
 							});
 							current.push(final_obj);
 						}
@@ -238,7 +254,6 @@ var router = function (app, io) {
 				}, {_id:0}).toArray(function(err2, arr2){
 					let data;
 					let current = [];
-					let current2 = [];
 					if(err || arr.length < 1){
 						arr = [];
 					}
@@ -254,18 +269,18 @@ var router = function (app, io) {
 						if(!current[item.tag]){
 							current[item.tag] = [];
 						}
-						if(giant_copy[item]){
-							keys = Object.keys(giant_copy[item].data);
-							giant_copy[item].tag = item;
+						if(giant[item]){
+							keys = Object.keys(giant[item].data);
+							giant[item].tag = item;
 							keys.forEach(function(key){
 								let split_key = key.split(".");
-								final_obj.date = giant_copy[item].date;
-								final_obj.tag = giant_copy[item].tag;
-								final_obj.var = giant_copy[item].var;
+								final_obj.date = giant[item].date;
+								final_obj.tag = giant[item].tag;
+								final_obj.var = giant[item].var;
 								if(!final_obj.data[split_key[1]]){
 									final_obj.data[split_key[1]] = {};
 								}
-								final_obj.data[split_key[1]][split_key[2]] = giant_copy[item].data[key];
+								final_obj.data[split_key[1]][split_key[2]] = giant[item].data[key];
 							});
 							current.push(final_obj);
 						}
@@ -301,7 +316,6 @@ var router = function (app, io) {
 }
 
 var giant = {};
-var giant_copy = {};
 var tags_set = {};
 setInterval(function () {
     if (flag) {
@@ -319,33 +333,15 @@ setInterval(function () {
 				date.hours = date.date.getHours();
 				date.minutes = date.date.getMinutes();
 				date.seconds = date.date.getSeconds();
-				date.year_to_hours = new Date(date.year, date.month, date.day , date.hours );
-/*
+				let set={};
 				if(!giant[item.tag]){
 					giant[item.tag] = {};
 					giant[item.tag].data = {};
 				}
-*/
-				if(!giant[date.year_to_hours]){
-					giant[date.year_to_hours] = {};
-				}
-				if(!giant[date.year_to_hours][item.tag]){
-					giant[date.year_to_hours][item.tag] = {};
-					giant[date.year_to_hours][item.tag].data = {};
-				}
-				
 				tags_set[item.tag] = date.date;
-				giant[date.year_to_hours][item.tag].date = date.year_to_hours ;
-				giant[date.year_to_hours][item.tag].var = item.var;
-				giant[date.year_to_hours][item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
-
-				if(!giant_copy[item.tag]){
-					giant_copy[item.tag] = {};
-					giant_copy[item.tag].data = {};
-				}
-				giant_copy[item.tag].date = date.year_to_hours;
-				giant_copy[item.tag].var = item.var;
-				giant_copy[item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
+				giant[item.tag].date = new Date('2017', date.month, date.day , date.hours );
+				giant[item.tag].var = item.var;
+				giant[item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
 
             });
 	        flag = true;	
@@ -364,6 +360,8 @@ function clone(obj) {
     }
     return copy;
 }
+
+/*
 function updateData(callback){
 	MongoClient.connect(url, (err, db) => {
 		var bulk = db.collection('basic').initializeUnorderedBulkOp();
@@ -374,26 +372,22 @@ function updateData(callback){
 		var finish = null;
 		var bulk_available = false;
 		start = new Date();
-		console.log('Started upsert with ',keys.length, ' dates, at second', start.getSeconds());		
-		
+		console.log('Started upsert with ',keys.length, 'at second', start.getSeconds());		
 		for(let i = 0; i< keys.length; i++){
-			let sub_keys = Object.keys(local_giant[keys[i]]);
-			console.log('Starting '+sub_keys.length+' upserts with date',keys[i], ' at second', start.getSeconds());
-			for(let j = 0; j< sub_keys.length; j++){
-		        bulk.find({
-		            "tag": sub_keys[j],
-		            "date": local_giant[keys[i]][sub_keys[j]].date,
-		            "var": local_giant[keys[i]][sub_keys[j]].var,
-		        })
-		        .upsert()
-		        .update(
-		        {
-		            $set: local_giant[keys[i]][sub_keys[j]].data
-		        });
-		        bulk_available = true;
-	        }
+			//set['value.'+hours+minutes+seconds+i]={date:new Date(), val:Math.random()};
+			//console.log(local_giant[keys[i]])
+	        bulk.find({
+	            "tag": keys[i],
+	            "date": local_giant[keys[i]].date,
+	            "var": local_giant[keys[i]].var,
+	        })
+	        .upsert()
+	        .update(
+	        {
+	            $set: local_giant[keys[i]].data
+	        });
+	        bulk_available = true;
 	    }
-	    
 	    if(bulk_available){
 		    bulk.execute(function(err,res){
 			    finish = new Date();
@@ -403,7 +397,87 @@ function updateData(callback){
                 log.insert.rows_inserted = keys.length;
 				log.insert.insertion_time = time + 's';
 				log.insert.insertion_date = new Date();
-				giant_copy = {};
+				emit();
+				callback(null,1);
+				db.close();
+				try {
+                    //fs.appendFileSync(file, 'rows upserted,' + row_size + ',date,' + new Date() + ',time,' + time + '\n');
+                } catch (e) {
+
+                }
+		    });
+	    }
+	    else{
+		    console.log('No bulk operation available.');
+		    callback(null,1);
+	    }
+    });
+}
+*/
+
+function updateData(callback){
+	var obj = {
+		tag : "Positive_PV_Sender",
+		var : "PV",
+		date: "2017-07-08T00:00:00.000Z",
+		data : {}
+	}
+	var data = {};
+	for(var hour = 0; hour < 24; hour++){
+		for(var i = 0; i<60;i++){
+		    if(!data[hour]){
+		        data[hour] = {};
+		    }
+		    for(var j = 0; j<60; j++){
+		        if(!data[hour][i]){
+		            data[hour][i] = {};
+		        }
+		        data[hour][i][j] = 1.234;
+		    }
+		}
+	}
+	obj.data = data;
+
+	MongoClient.connect(url, (err, db) => {
+		var bulk = db.collection('daily').initializeUnorderedBulkOp();
+		var local_giant = clone(giant);//JSON.parse(JSON.stringify(giant));
+		giant = {};
+		var keys = Object.keys(local_giant);
+		var start = null;
+		var finish = null;
+		var bulk_available = false;
+		start = new Date();
+		console.log('Started upsert with ',keys.length, 'at second', start.getSeconds());		
+		for(let i = 0; i< keys.length; i++){
+			//set['value.'+hours+minutes+seconds+i]={date:new Date(), val:Math.random()};
+			//console.log(local_giant[keys[i]].data)
+	        bulk.find({
+	            "tag": keys[i],
+	            "date": "2017-07-08T00:00:00.000Z",
+	            "var": "PV",
+	        })
+	        .upsert()
+	        .update(
+	        {
+	            $set: {"data.0.0":data["0"]["0"]}
+	        });
+/*
+			let local_obj = clone(obj);
+			local_obj.tag = local_obj.tag+i;
+			bulk.insert(local_obj);
+*/
+	        bulk_available = true;
+	        //console.log(keys[i],i)
+	    }
+	    if(bulk_available){
+		    bulk.execute(function(err,res){
+			    finish = new Date();
+			    var time = ((finish.getTime() - start.getTime()) / 1000);
+			    console.log('Finished in ',(finish.getTime() - start.getTime())/1000+'s');
+			    log.insert.final_time = "Upsert operation took " + time;
+                log.insert.rows_inserted = keys.length;
+				log.insert.insertion_time = time + 's';
+				log.insert.insertion_date = new Date();
 				emit();
 				callback(null,1);
 				db.close();
@@ -488,6 +562,11 @@ setInterval(function(){
 
 function move(){
 	MongoClient.connect(url, (err, db) => {
+		if(err) {
+			console.log('error, moving again',err);
+			move();
+			return;
+		}
 		var date = new Date();
 		var bulkInsert = db.collection('past').initializeUnorderedBulkOp()
 		var bulkRemove = db.collection('basic').initializeUnorderedBulkOp()
@@ -499,7 +578,7 @@ function move(){
 		start = new Date();
 		
 		date.setMonth(date.getMonth());
-		date.setHours(date.getHours()-2);
+		date.setHours(date.getHours()-1);
 	    date.setMinutes(0);
 	    date.setSeconds(0);
 	    date.setMilliseconds(0);
@@ -526,61 +605,6 @@ function move(){
 		
 	});
 }
-/*
-function move(){
-	MongoClient.connect(url, (err, db) => {
-		var date = new Date();
-		var bulkInsert = db.collection('past').initializeUnorderedBulkOp()
-		var bulkRemove = db.collection('basic').initializeUnorderedBulkOp()
-		var x = 1000
-		var counter = 0
-		
-		var start = null;
-		var finish = null;
-		start = new Date();
-		
-		date.setMonth(date.getMonth());
-		date.setHours(date.getHours()-1);
-	    date.setMinutes(0);
-	    date.setSeconds(0);
-	    date.setMilliseconds(0);
-	    console.log('Moving files from basic to past using date',date);
-	    db.collection('basic').find({date:{$lte: date}}).count(function(err,count){
-			db.collection('basic').find({date:{$lte: date}}).forEach(function(doc){
-			    var time;
-			    let date = new Date(doc.date);
-			    let hour = date.getHours();
-			    let obj = {};
-			    obj['data.'+hour] = doc.data;
-			    bulkInsert.find({
-		            "tag": doc.tag,
-		            "var": doc.var,
-		            "date": new Date(date.getFullYear(), date.getMonth(), date.getDate())
-		        })
-		        .upsert()
-		        .update(
-		        {
-		            $set: obj
-		        });
-				bulkRemove.find({_id:doc._id}).removeOne();
-				counter ++;
-				if( counter % x == 0 || counter == count){
-					bulkInsert.execute()
-					bulkRemove.execute()
-					bulkInsert = db.collection('past').initializeUnorderedBulkOp()
-					bulkRemove = db.collection('basic').initializeUnorderedBulkOp()
-				}
-				if(counter == count){
-					finish = new Date();
-				    time = ((finish.getTime() - start.getTime()) / 1000);
-				    console.log('Finished moving data to "past" collection in ',(finish.getTime() - start.getTime())/1000+'s');
-				}
-			});
-	    });
-		
-	});
-}
-*/
 
 var time_to_move_data = true;
 var first_time_moving_data = true;
