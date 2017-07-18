@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Author: Andres Abril
+# © 2017, Emerson Electric Co 
+# Description: stop app using forever
+
+cd ..
+forever stop AppServer
+
+exit 0

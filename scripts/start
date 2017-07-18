@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Author: Andres Abril
+# © 2017, Emerson Electric Co 
+# Description: start app using forever
+
+cd ..
+name=AppServer npm run-script forever
+
+exit 0

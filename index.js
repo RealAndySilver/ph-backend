@@ -1,4 +1,5 @@
 const express = require('express');
+var path = require('path');
 var bodyParser = require("body-parser");
 const app = express();
 const server = require('http').Server(app);
@@ -23,8 +24,9 @@ app.use(allowCrossDomain);
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true }));
 app.use(express.static(__dirname + '/public'));
-var mongo = require("./routes/mongo.js")(app,io);
-var cassandra = require("./routes/cassandra.js")(app);
+app.use('/data', express.static(__dirname + '/data'));
+
+var writer = require("./writer.js")(app,io);
 
 server.listen(port, () => console.log('listening on port ' + port));
 
@@ -40,7 +42,6 @@ server.listen(port, () => console.log('listening on port ' + port));
 setInterval(function(){
   //Garbage collection every 5 seconds.
   global.gc();
-  //console.log('GC done mem:',process.memoryUsage());
 }, 1000*5);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
