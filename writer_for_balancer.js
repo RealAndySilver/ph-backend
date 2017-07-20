@@ -144,6 +144,7 @@ var router = function (app, io) {
     }); 
 */   
 	app.post('/mongo-api/big-data', /* upload.array("upload_files"), */ function (req, res) {
+		//console.log('Requested from', worker.id)
         res.send("ok");
         var files = req.files;
         var bigdata = req.body;
@@ -306,8 +307,15 @@ var router = function (app, io) {
     });
 	
     io.on('connection', function (socket_m) {
-	    console.log("connected");
+	    //console.log("connected");
 	    socket = socket_m;
+	    if(socket){
+			socket.on('CurrentX',function(data){
+				for (let i = 0; i < data.current.length; i++) {
+	                addToGiant(data.current[i]);
+	            }
+			});
+		}
 	});
 }
 

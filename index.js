@@ -4,7 +4,12 @@ var bodyParser = require("body-parser");
 const app = express();
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
-const port = process.env.PORT || 3000;
+var port = 3000;
+var writer_route = "./writer.js";
+if(process.env.type == "balanced"){
+	port = process.env.PORT || 3100;
+	writer_route = "./writer_for_balancer.js"
+}
 
 var allowCrossDomain = function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
@@ -26,7 +31,8 @@ app.use(bodyParser.urlencoded({limit: '50mb', extended: true }));
 app.use(express.static(__dirname + '/public'));
 app.use('/data', express.static(__dirname + '/data'));
 
-var writer = require("./writer.js")(app,io);
+
+var writer = require(writer_route)(app,io);
 
 server.listen(port, () => console.log('listening on port ' + port));
 
