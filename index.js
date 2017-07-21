@@ -1,40 +1,50 @@
-const express = require('express');
+
+var cluster = require('cluster');
 var path = require('path');
 var bodyParser = require("body-parser");
-const app = express();
-const server = require('http').Server(app);
-const io = require('socket.io')(server);
-var port = 3000;
-var writer_route = "./writer.js";
-if(process.env.type == "balanced"){
-	port = process.env.PORT || 3100;
-	writer_route = "./writer_for_balancer.js"
+const port = process.env.PORT || 3000;
+
+if(process.env.type=="single_thread"){
+	console.log('Running in single thread mode.');
+	const express = require('express');
+	const app = express();
+	const server = require('http').Server(app);
+	const io = require('socket.io')(server);
+	app.use(bodyParser.json({limit: '50mb'}));
+	var writer = require("./writer.js")(app,io);
+	server.listen(port, () => console.log('listening on port ' + port));
 }
-
-var allowCrossDomain = function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,UNLOCK,PURGE');
-    res.header(	'Access-Control-Allow-Headers', 
-    			'Content-Type , content-type, Authorization, Content-Length, X-Requested-With, type, token,Cache-Control,If-Modified-Since,if-modified-since, pragma');
-    if ('OPTIONS' == req.method) {
-      res.sendStatus(200);
-    }
-    else{
-	  next();  
-    }
+else{
+	// Code to run if we're in the master process
+	
+	if (cluster.isMaster) {
+	
+	    // Count the machine's CPUs
+	    var cpuCount = require('os').cpus().length;
+		console.log('Running clustering mode with',cpuCount,'cores.');
+	    // Create a worker for each CPU
+	    for (var i = 0; i < cpuCount; i += 1) {
+	        cluster.fork();
+	    }
+	
+	    // Listen for dying workers
+	    cluster.on('exit', function (worker) {	
+	        console.log('Worker %d died ', worker.id);
+	        cluster.fork();
+	    });
+	
+	// Code to run if we're in a worker process
+	} else {
+		const express = require('express');
+		const app = express();
+		const server = require('http').Server(app);
+		const io = require('socket.io')(server);
+		app.use(bodyParser.json({limit: '50mb'}));	
+		var writer = require("./writer.js")(app, io, cluster.worker);
+		server.listen(port, () => console.log('listening on port ' + port));
+	    console.log('Worker %d running!', cluster.worker.id);
+	}
 }
-
-app.use(allowCrossDomain);
-
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({limit: '50mb', extended: true }));
-app.use(express.static(__dirname + '/public'));
-app.use('/data', express.static(__dirname + '/data'));
-
-
-var writer = require(writer_route)(app,io);
-
-server.listen(port, () => console.log('listening on port ' + port));
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 //******************************* IMPORTANT ******* IMPORTANT *******************************************//
