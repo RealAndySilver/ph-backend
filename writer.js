@@ -12,7 +12,6 @@ var upload = multer();
 
 var file = './public/mongo_average.csv';
 var socket;
-var global_db;
 
 var giant = {};
 var giant_copy = {};
@@ -27,7 +26,6 @@ var busy = false;
 //Create Indexes
 MongoClient.connect(url, (err, db) => {
     if (err) return console.log(err)
-    global_db = db;
     
 /*
     db.collection('realtime').createIndex({date:1}, { expireAfterSeconds: 90 }, function(){
@@ -66,30 +64,7 @@ var emit = function(){
     }
 };
 
-var sendCurrentUsingSocket = function(){
-	if(socket){
-		socket.emit('Current', {
-	        current: giant_copy
-	    });
-    }
-};
-
-var sendSingleItemUsingSocket = function(item){
-	if(socket){
-		socket.emit('SingleItem', {
-	        item: item
-	    });
-    }
-};
-var resetUsingSocket = function(){
-	if(socket){
-		socket.emit('ResetArray', {
-	        status: true
-	    });
-    }
-};
-
-var router = function (app, io) {
+var router = function (app, io, worker) {
 
     // mongo api insert n rows (with images & videos)
 /*
@@ -143,8 +118,7 @@ var router = function (app, io) {
         }
     }); 
 */   
-	app.post('/mongo-api/big-data', /* upload.array("upload_files"), */ function (req, res) {
-        res.send("ok");
+	app.post('/mongo-api/big-data', upload.array("upload_files"), function (req, res) {
         var files = req.files;
         var bigdata = req.body;
         var dir = '';
@@ -186,20 +160,15 @@ var router = function (app, io) {
                 );
             }
         } else {
-	        //sendSingleItemUsingSocket(req.body.bigdata);
             bigdata = req.body.bigdata;
             for (let i = 0; i < bigdata.length; i++) {
-                //globalArray.push(bigdata[i]);
                 addToGiant(bigdata[i]);
-                
             }
-            
-            //sendCurrentUsingSocket();
+			res.send("ok");
         }
     }); 
 /*
 	app.post('/mongo-api/big-data', upload.array("upload_files"), function (req, res) {
-        res.send("ok");
         var files = req.files;
         var bigdata = req.body;
         var dir = '';
@@ -256,10 +225,10 @@ var router = function (app, io) {
 	            for (var i = 0; i < bigdata.length; i++) {
 		            item = bigdata[i];
 		            current_date = new Date(item.date);
-	                globalArray.push(item);
-	                
 	                bulkInsert.insert({_id:item.tag+':'+item.var+':'+current_date.getMinutes()+'.'+current_date.getSeconds()+':'+item.val, date:current_date});
+	                addToGiant(bigdata[i]);
 	            }
+				res.send("ok");
 	        }
 			
 			
@@ -354,7 +323,6 @@ setInterval(function () {
 				giant_copy[item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
 				
             });
-            sendCurrentUsingSocket();
 	        flag = true;
         } 
         else {
@@ -365,6 +333,7 @@ setInterval(function () {
 */
 
 function addToGiant(item){
+/*
 	let date = {};
     date.date = new Date(item.date);
     date.year = date.date.getFullYear();
@@ -388,6 +357,28 @@ function addToGiant(item){
 	giant[date.year_to_hours][item.tag].data.var = item.var;
 	giant[date.year_to_hours][item.tag].data.tag = item.tag;
 	giant[date.year_to_hours][item.tag].data['data'+'.'+date.minutes+'.'+date.seconds] = item.val;
+*/
+	let date = new Date(item.date);
+	let minutes = date.getMinutes();
+	let seconds = date.getSeconds();
+	date.setMinutes(0);
+	date.setSeconds(0);
+	date.setMilliseconds(0);
+
+	if(!giant[date]){
+		giant[date] = {};
+	}
+	if(!giant[date][item.tag]){
+		giant[date][item.tag] = {};
+		giant[date][item.tag].data = {};
+	}
+	
+	//tags_set[item.tag] = date.date;
+	//giant[date][item.tag].data._id = item.tag+':'+item.var+':'+date.getFullYear()+''+date.getMonth()+''+date.getDate()+''+date.getHours() ;
+	giant[date][item.tag].data.date = date ;
+	giant[date][item.tag].data.var = item.var;
+	//giant[date][item.tag].data.tag = item.tag;
+	giant[date][item.tag].data['data'+'.'+minutes+'.'+seconds] = item.val;
 
 /*
 	if(!giant_copy[item.tag]){
@@ -429,10 +420,11 @@ function updateData(callback){
 			let sub_keys = Object.keys(local_giant[keys[i]]);
 			console.log('Starting '+sub_keys.length+' upserts with date',keys[i], ' at second', start.getSeconds());
 			for(let j = 0; j< sub_keys.length; j++){
-				let dt = local_giant[keys[i]][sub_keys[j]].data.date;
-				
+				let set_object = local_giant[keys[i]][sub_keys[j]].data;
+				let dt = set_object.date;
+				set_object.tag = sub_keys[j];
 		        bulk.find({
-		            "_id": sub_keys[j]+':'+local_giant[keys[i]][sub_keys[j]].data.var+':'+dt.getFullYear()+''+dt.getMonth()+''+dt.getDate()+''+dt.getHours(),
+		            "_id": sub_keys[j]+':'+set_object.var+':'+dt.getFullYear()+''+dt.getMonth()+''+dt.getDate()+''+dt.getHours(),
 		            //"tag": sub_keys[j],
 		            //"date": local_giant[keys[i]][sub_keys[j]].data.date,
 		            //"var": local_giant[keys[i]][sub_keys[j]].var,
@@ -440,7 +432,7 @@ function updateData(callback){
 		        .upsert()
 		        .update(
 		        {
-		            $set: local_giant[keys[i]][sub_keys[j]].data
+		            $set: set_object
 		        });
 		        bulk_available = true;
 	        }
@@ -475,7 +467,6 @@ function updateData(callback){
 			    finish = new Date();
 			    var time = ((finish.getTime() - start.getTime()) / 1000);
 			    console.log('Finished in ',(finish.getTime() - start.getTime())/1000+'s');
-			    //resetUsingSocket();
 			    giant_copy = {};
 			    
 /*
@@ -544,29 +535,41 @@ function updateTags(callback){
     });
 }
 
-setInterval(function(){
-	var date = new Date();
-	if(!busy){
-		if(date.getSeconds()==0 || first_time_to_update || last_updated_minute != date.getMinutes()){
-			busy = true;
-			updateData(function(err, res){
-				updateTags(function(err2, res2){
-					time_to_update = false;
-					first_time_to_update = false;
-					last_updated_minute = date.getMinutes();
-					busy = false;
-				});
+if(process.env.type="single_thread"){
+	setInterval(function(){
+		updateData(function(err, res){
+	/*
+			updateTags(function(err2, res2){
+	
 			});
+	*/
+		});
+	}, 10000);
+}
+else{
+	setInterval(function(){
+		var date = new Date();
+		if(!busy){
+			if(date.getSeconds()==0 || first_time_to_update || last_updated_minute != date.getMinutes()){
+				busy = true;
+				updateData(function(err, res){
+					updateTags(function(err2, res2){
+						time_to_update = false;
+						first_time_to_update = false;
+						last_updated_minute = date.getMinutes();
+						busy = false;
+					});
+				});
+			}
+			else{
+				time_to_update = true;
+			}
 		}
 		else{
-			time_to_update = true;
+			//console.log('busy')
 		}
-	}
-	else{
-		//console.log('busy')
-	}
-}, 1000);
-
+	}, 1000);
+}
 
 //create file in the path
 function writeFile(path, contents, callback) {
