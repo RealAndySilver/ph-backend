@@ -1,5 +1,6 @@
 var MongoClient = require('mongodb').MongoClient;
 var fs = require('fs');
+var path_1 = require('path');
 var url = 'mongodb://localhost:27017/test';
 var start, finish;
 var globalArray = [];
@@ -122,11 +123,12 @@ var router = function (app, io, worker) {
         var files = req.files;
         var bigdata = req.body;
         var dir = '';
+        var initial = '';
         var vr;
         var tag;
         var file_size;
         var date;
-        var file_path = '';
+        var file_name = '';
 
         if (files) {
             for (var i = 0; i < files.length; i++) {
@@ -141,23 +143,17 @@ var router = function (app, io, worker) {
                     file_size = bigdata.file_size;
                     date = new Date(bigdata.date);
                 }
-                dir = "./data/tags/" + tag + "/" + vr + "/" + file_size;
-                file_path = dir + "/" + files[i].originalname;
-
+                initial = path_1.join(__dirname+'/../data');
+                dir = "/tags/" + tag + "/" + vr + "/" + file_size;
+                file_name = "/" + files[i].originalname;
                 start = new Date();
-                writeFile(file_path, files[i].buffer, function (err) {
+                writeFile(initial+dir+file_name, files[i].buffer, function (err) {
                     if (err) {
                         console.log('Err:', err);
                     }
                 });
-                globalArray.push(
-                    {
-                        tag: tag,
-                        val: file_path,
-                        date: date,
-                        var: vr
-                    }
-                );
+                addToGiant({tag: tag, val: './data'+dir+file_name , date: date, var: vr});
+                res.send("ok");
             }
         } else {
             bigdata = req.body.bigdata;
@@ -373,7 +369,7 @@ function addToGiant(item){
 		giant[date][item.tag].data = {};
 	}
 	
-	//tags_set[item.tag] = date.date;
+	tags_set[item.tag] = date.date;
 	//giant[date][item.tag].data._id = item.tag+':'+item.var+':'+date.getFullYear()+''+date.getMonth()+''+date.getDate()+''+date.getHours() ;
 	giant[date][item.tag].data.date = date ;
 	giant[date][item.tag].data.var = item.var;
@@ -535,14 +531,13 @@ function updateTags(callback){
     });
 }
 
-if(process.env.type="single_thread"){
+if(process.env.type=="single_thread"){
 	setInterval(function(){
 		updateData(function(err, res){
-	/*
-			updateTags(function(err2, res2){
+				updateTags(function(err2, res2){
 	
 			});
-	*/
+	
 		});
 	}, 10000);
 }
